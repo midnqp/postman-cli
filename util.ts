@@ -8,7 +8,7 @@ import _ from 'lodash'
 import { logger } from './logger.js'
 export { logger, _ }
 
-type PcliResource = psdk.Item | psdk.ItemGroup< psdk.Item > | psdk.Response
+export type PcliResource = psdk.Item | psdk.ItemGroup< psdk.Item > | psdk.Response
 
 /**
  * Show an item/example formatted.
@@ -20,7 +20,7 @@ export function showDetails (resource: psdk.Item | psdk.Response) {
 	else req = resource.request
 
 	if (!req)
-		return Error(`not found: request data on example "${resource.name}"`)
+		return Error(`not found request data on "${resource.name}"`)
 
 	const line1 = [
 		req.method.toLowerCase(),
@@ -47,22 +47,27 @@ export function showDetails (resource: psdk.Item | psdk.Response) {
  * Pretty-prints an object recursively.
  * @kind util
  */
-export const ex = (o, depth = 4, showHidden = true) =>
-	inspect(o, {
+export const ex = (o, format=false) => {
+	const result = inspect(o, {
 		indentationLvl: 2,
 		colors: true,
-		depth,
-		showHidden,
+		depth:10,
+		showHidden:false,
 		//sorted: true,
 	})
+	return result
+}
 
 /**
  * Goes deep recursively and finds a nested
  * folder/request/example.
- *
+ * 
+ * @param parent A collection.
+ * @param args Nested resources, as in: folder1 folder2 request1 example2
  * @kind util
  */
-export function findRecurse (parent, args): PcliResource {
+export function findRecurse (parent, args:string[]): PcliResource|Error {
+	/** Finds next resource.  */
 	const findNext = (name: string, parentIter) => {
 		if (!parentIter.find) return
 		return parentIter.find(rule => rule.name.toLowerCase() === name, {})
@@ -70,19 +75,111 @@ export function findRecurse (parent, args): PcliResource {
 
 	let resource = parent.items
 	let currDepth = 0
+	let maxDepth = args.length
 	const nextName = () => args[currDepth]
-	let tmp = findNext(nextName(), resource)
+	/** Additionally increments currDepth. */
+	const isLast = () => ++currDepth === maxDepth
+	let tmp 
 
-	while (tmp) {
-		currDepth++
-		if (psdk.ItemGroup.isItemGroup(tmp))
-			resource = (<psdk.ItemGroup< psdk.Item >>tmp).items
-		else if (psdk.Item.isItem(tmp)) resource = tmp.responses
-		else if (psdk.PropertyList.isPropertyList(tmp)) resource = tmp.members
-		else if (psdk.Response.isResponse(tmp)) resource = tmp as psdk.Response
-		tmp = findNext(nextName(), resource)
+	while (currDepth < maxDepth) {
+		const name = nextName()
+		tmp = findNext(name, resource) 
+		if (!tmp) {
+			let msg = ''
+			if (resource instanceof psdk.ItemGroup)
+				msg = `"${name}" not found in "${resource.name}".`
+			else msg = `"${name}" not found in "${parent.name}".`
+			return Error(msg)
+		}
+		const isItemGroup = tmp instanceof psdk.ItemGroup
+		const isItem = tmp instanceof psdk.Item
+		const isResponse = tmp instanceof psdk.Response
+		
+		if (isItemGroup) {
+			if (isLast()) return tmp
+			resource = tmp.items
+		}
+		else if (isItem) {
+			if (isLast()) return tmp
+			resource = (tmp.responses as any).members
+		}
+		else if (isResponse) {
+			if (isLast()) return tmp
+			resource = tmp 
+		}
+		else return Error(`Found unknown instance "${name}".`)
 	}
 	return resource
+}
+
+function isIterable (value) {
+  return Symbol.iterator in Object(value);
+}
+
+export function isItem(value):value is psdk.Item  {
+	return psdk.Item.isItem(value)
+}
+
+export function isFolder(value):value is psdk.ItemGroup<any> {
+	return psdk.ItemGroup.isItemGroup(value)
+}
+
+export function isResp(value): value is psdk.Response {
+	return psdk.Response.isResponse(value)
+}
+
+export function isColl(value): value is psdk.Collection {
+	return psdk.Collection.isCollection(value)
+}
+
+/**
+ * Lists names of resources recursively.
+ * Note that, this recursive function is reckless.
+ * @kind util
+ */
+export function listRecurse (parent, args: string[], names) {
+	if (isIterable(parent)) parent.forEach(item => {
+		names.push([])
+		const store = names.at(-1)
+		let iter:any[] = []
+		if (item instanceof psdk.ItemGroup) {
+			iter= item.items.all()
+		}
+		else if (item instanceof psdk.Item)  {
+			iter =item.responses.all()
+		}
+
+		const nameWithSymb = [getInstanceSymbol(item), item.name].join(' ')
+		store.push(nameWithSymb)
+		listRecurse(iter, args, store)
+	})
+}
+
+export function getInstanceSymbol(value) {
+	let result = ''
+	if (isFolder(value)) result='F'
+	else if (isItem(value)) result= 'R'
+	else if (isResp(value)) result= 'E'
+	else if (isColl(value)) result= 'C'
+	else result= '?'
+	
+	return chalk.white(result)
+}
+
+export function showList (names) {
+	let result = ''
+	let tab = 0
+	const recurse = array => array.forEach(e => {
+		if (Array.isArray(e)) {
+			tab++
+			console.log('\t'.repeat(tab), e[0])
+			recurse(e)
+		}
+		if (_.isEqual(array.at(-1), e)) tab--
+	})
+
+	recurse(names)
+	return result
 }
 
 /**

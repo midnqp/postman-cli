@@ -1,0 +1,1 @@
+{"type":"module","dependencies":{"command-line-args":"^5.2.1","commander":"^9.4.0","file-type":"^17.1.1","postman-collection":"^4.1.4"},"devDependencies":{"@types/command-line-args":"^5.2.0","@types/command-line-usage":"^5.0.2","@types/postman-collection":"^3.5.7","command-line-usage":"^6.1.3"}}

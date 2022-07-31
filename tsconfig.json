@@ -1,0 +1,42 @@
+{
+	"compilerOptions": {
+		"plugins": [
+			{
+				"transform": "typescript-is/lib/transform-inline/transformer",
+				"shortCircuit": false,
+				"ignoreClasses": true,
+				"ignoreMethods": true,
+				"functionBehavior": "ignore",
+				"disallowSuperfluousObjectProperties": false,
+				"transformNonNullExpressions": true,
+				"emitDetailedErrors": "true"
+			}
+		],
+		"incremental": true,
+		"listEmittedFiles": false,
+		"esModuleInterop": true,
+		"removeComments": false,
+		"module": "ESNext",
+		"target": "ES2017",
+		"allowJs": true,
+		"checkJs": true,
+		"skipLibCheck": true,
+		"moduleResolution": "node",
+		"lib": ["ES2017"],
+		"strict": true,
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"rootDir": ".",
+		"sourceMap": false,
+		"listFiles": false,
+		"declaration": false,
+		"outDir": "dist",
+		"baseUrl": ".",
+		"noImplicitAny": false,
+		"suppressExcessPropertyErrors": true,
+		"suppressImplicitAnyIndexErrors": false
+	}
+}

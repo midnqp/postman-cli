@@ -34,9 +34,10 @@
 		"listFiles": false,
 		"declaration": false,
 		"outDir": "dist",
-		"baseUrl": ".",
+		"baseUrl": "./src",
 		"noImplicitAny": false,
 		"suppressExcessPropertyErrors": true,
 		"suppressImplicitAnyIndexErrors": false
-	}
+	},
+	"include": ["src/**/*"]
 }

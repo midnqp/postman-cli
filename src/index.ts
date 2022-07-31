@@ -49,7 +49,7 @@ async function cmdShow (args: string[], ...cmd) {
 
 	result.forEach(output => {
 		if (util._.isError(output)) return util.logger.error(output.message)
-		else return util.logger.out(output)
+		util.logger.out(output)
 	})
 }
 
@@ -82,5 +82,5 @@ async function cmdList (args: string[], ...cmd) {
 	if (util.isFolder(parent) || util.isColl(parent)) util.listRecurse(parent.items.all(), args, store)
 	else if (util.isItem(parent)) util.listRecurse(parent.responses.all(), args, store)
 	
-	util.showList(names)
+	util.logger.out(util.showList(names))
 }

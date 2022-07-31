@@ -157,10 +157,10 @@ export function listRecurse (parent, args: string[], names) {
 
 export function getInstanceSymbol(value) {
 	let result = ''
-	if (isFolder(value)) result='F'
+	if (isColl(value)) result= 'C'
+	else if (isFolder(value)) result='F'
 	else if (isItem(value)) result= 'R'
 	else if (isResp(value)) result= 'E'
-	else if (isColl(value)) result= 'C'
 	else result= '?'
 	
 	return chalk.white(result)
@@ -172,7 +172,7 @@ export function showList (names) {
 	const recurse = array => array.forEach(e => {
 		if (Array.isArray(e)) {
 			tab++
-			console.log('\t'.repeat(tab), e[0])
+			result += '\t'.repeat(tab)+ ' '+ e[0] +'\n'
 			recurse(e)
 		}
 		if (_.isEqual(array.at(-1), e)) tab--

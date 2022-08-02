@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs'
 import chalk from 'chalk'
 import psdk from 'postman-collection'
-import axios from 'axios'
+import axios, {AxiosResponse} from 'axios'
 import { inspect } from 'node:util'
 import env from './env.js'
 import _ from 'lodash'
@@ -10,11 +10,38 @@ export { logger, _ }
 
 export type PcliResource = psdk.Item | psdk.ItemGroup< psdk.Item > | psdk.Response
 
+type ResourceDetails = {headers: any; params: any; query: any; body: any; url: {path: string; method: string}}
+
 /**
  * Show an item/example formatted.
  * @kind util
  */
-export function showDetails (resource: psdk.Item | psdk.Response) {
+export function showDetails (resource: psdk.Item | psdk.Response| ResourceDetails, ignore=['url', 'headers']) {
+	let name = ''
+	let details:ResourceDetails
+	if (isItem(resource) || isResp(resource)) {
+		const _details = getDetails(resource)
+		if (_.isError(_details)) return _details
+		details = _details
+		name = resource.name
+	}
+	else details = resource
+	
+	const urlLine = details.url.method + ' ' + details.url.path
+	let result = chalk.inverse(name) + ' ' + urlLine
+	const filteredDetails:any = {}
+	Object.entries(details).forEach(([ k, v ]) => {
+		if (ignore.includes(k)) return
+		const _v = ex(v)
+		if (_v.length > 2) filteredDetails[k] = v
+	})
+	const formatted = ex(filteredDetails, true)
+	result += formatted.length > 2 ? '\n'+formatted : ''
+	return result
+}
+
+/** Gets details from Postman requests and examples. */
+export function getDetails (resource:psdk.Item|psdk.Response): Error | ResourceDetails  {
 	let req: psdk.Request | undefined
 	if (resource instanceof psdk.Response) req = resource.originalRequest
 	else req = resource.request
@@ -22,37 +49,31 @@ export function showDetails (resource: psdk.Item | psdk.Response) {
 	if (!req)
 		return Error(`not found request data on "${resource.name}"`)
 
-	const line1 = [
-		req.method.toLowerCase(),
-		req.url.getPath({ unresolved: true }),
-	].join(' ')
-	const reqData: any = {
+	return {
 		params: req.url.variables.toObject(),
 		query: req.url.query.toObject(),
 		body: JSON.parse(req.body?.raw || '{}'),
+		url: {
+			path: req.url.getPath({ unresolved: true }), 
+			method: req.method.toLowerCase()
+		},
+		headers: req.headers.toObject()
 	}
-	const _line = {
-		params: ex(reqData.params),
-		query: ex(reqData.query),
-		body: ex(reqData.body),
-	}
-	let result = chalk.inverse(resource.name) + ' ' + line1
-	Object.entries(_line).forEach(([ k, v ]) => {
-		if (v.length > 2) result += '\n' + k + ': ' + v
-	})
-	return result
 }
 
 /**
  * Pretty-prints an object recursively.
  * @kind util
  */
-export const ex = (o, format=false) => {
+export const ex = (o, compact=false) => {
 	const result = inspect(o, {
 		indentationLvl: 2,
 		colors: true,
-		depth:10,
+		depth:5,
 		showHidden:false,
+		compact,
+		maxArrayLength: 4,
+		maxStringLength: 16
 		//sorted: true,
 	})
 	return result
@@ -75,7 +96,7 @@ export function findRecurse (parent, args:string[]): PcliResource|Error {
 
 	let resource = parent.items
 	let currDepth = 0
-	let maxDepth = args.length
+	const maxDepth = args.length
 	const nextName = () => args[currDepth]
 	/** Additionally increments currDepth. */
 	const isLast = () => ++currDepth === maxDepth
@@ -182,6 +203,11 @@ export function showList (names) {
 	return result
 }
 
+export function getVariables(cmd) {
+	const variables = cmd.parent.opts().variables || env.variables || '{}'
+	return JSON.parse(variables)
+}
+
 /**
  * @kind util
  */
@@ -208,3 +234,16 @@ export function fileExists (path) {
 		.then(_ => true)
 		.catch(_ => false)
 }
+
+export function parseAxiosError(err){
+	const {config:{url}, response: {status, statusText, headers, data }} = err
+	return {url, status, statusText, headers, data }
+}
+
+//export function parseAxiosRes(res: AxiosResponse):ResourceDetails {
+	//return {
+		//url: res.config.url,
+		//body: res.data,
+		
+	//}
+//}

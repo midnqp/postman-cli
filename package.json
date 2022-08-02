@@ -2,7 +2,8 @@
 	"type": "module",
 	"scripts": {
 		"build": "tsc -p tsconfig.json",
-		"start": "ts-node-esm src/index.ts"
+		"start": "ts-node-esm src/index.ts",
+		"dev": "tsc-watch --noClear -p tsconfig.json"
 	},
 	"dependencies": {
 		"axios": "^0.27.2",

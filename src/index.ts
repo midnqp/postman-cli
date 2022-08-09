@@ -17,21 +17,22 @@ program
 		'-c, --collection <string>',
 		'path to postman collection'
 	)
-	.option('-H, --headers <string>', 'global header for all requests')
+	.option('-H --headers <string>', 'global header for all requests')
 	.option('-V --variables <string>', 'Postman')
 program
 	.command('show <shows...>')
 	.description('show details of a resource')
-	.option('--with-res <boolean>', 'include response')
+	.option('-s', 'include response')
 	.action(Cmd.show)
 program
 	.command('list [lists...]')
 	.description('list resource heirarchy')
+	.option('-d <number>', 'depth')
 	.action(Cmd.list)
 program
 	.command('run [runs...]')
 	.description('runs a request')
 	.option('-r', 'include request details')
-	.option('-m', 'include additional response details')
+	.option('-s', 'include additional response details')
 	.action(Cmd.run)
 program.parse()

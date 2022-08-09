@@ -134,7 +134,7 @@ export function findRecurse (parent, args:string[]): PcliResource|Error {
 }
 
 function isIterable (value) {
-  return Symbol.iterator in Object(value);
+	return Symbol.iterator in Object(value);
 }
 
 export function isItem(value):value is psdk.Item  {
@@ -156,23 +156,32 @@ export function isColl(value): value is psdk.Collection {
 /**
  * Lists names of resources recursively.
  * Note that, this recursive function is reckless.
+ * @param optionalArgs Optional cmdline args
  * @kind util
  */
-export function listRecurse (parent, args: string[], names) {
+export function listRecurse (parent, args: string[], names, optionalArgs?:Record<string,any>, currDepth=0) {
 	if (isIterable(parent)) parent.forEach(item => {
 		names.push([])
 		const store = names.at(-1)
 		let iter:any[] = []
-		if (item instanceof psdk.ItemGroup) {
-			iter= item.items.all()
-		}
-		else if (item instanceof psdk.Item)  {
-			iter =item.responses.all()
+		let isDepthInc=false
+		if (optionalArgs && optionalArgs.d > currDepth) {
+			if (item instanceof psdk.ItemGroup) {
+				iter= item.items.all()
+				currDepth++
+				isDepthInc =true
+			}
+			else if (item instanceof psdk.Item)  {
+				iter =item.responses.all()
+				currDepth++
+				isDepthInc =true
+			}
 		}
 
 		const nameWithSymb = [getInstanceSymbol(item), item.name].join(' ')
 		store.push(nameWithSymb)
-		listRecurse(iter, args, store)
+		listRecurse(iter, args, store, optionalArgs, currDepth)
+		if (isDepthInc) currDepth--
 	})
 }
 

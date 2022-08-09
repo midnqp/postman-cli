@@ -35,8 +35,8 @@ export default class {
 	 * List items in collection, folder, and request.
 	 * @kind command
 	 */
-	static async list (args: string[], ...cmd) {
-		cmd = cmd[1]
+	static async list (args: string[], ..._cmd) {
+		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
 		const co = await util.getCollection(cmd)
 		const names:any[] = []
@@ -58,8 +58,8 @@ export default class {
 			store=names[0]
 		}
 		
-		if (util.isFolder(parent) || util.isColl(parent)) util.listRecurse(parent.items.all(), args, store)
-		else if (util.isItem(parent)) util.listRecurse(parent.responses.all(), args, store)
+		if (util.isFolder(parent) || util.isColl(parent)) util.listRecurse(parent.items.all(), args, store, optional)
+		else if (util.isItem(parent)) util.listRecurse(parent.responses.all(), args, store, optional)
 		
 		util.logger.out(util.showList(names))
 	}
@@ -120,7 +120,7 @@ export default class {
 			util.logger.error(util.ex(util.parseAxiosError(err)))
 			return
 		}
-		if (optional.m) {/** response meta: bytes, time, etc. */}
+		if (optional.s) {/** response meta: bytes, time, etc. */}
 		util.logger.out(util.ex(result.data))
 	}
 }

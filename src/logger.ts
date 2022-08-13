@@ -1,4 +1,5 @@
 import winston from 'winston'
+import {ex} from './util.js'
 const {
 	loggers,
 	transports: { Console },
@@ -8,7 +9,7 @@ const {
 const logFormat = [
 	printf(info => {
 		const { level, message } = info
-		if (['error', 'warn'].includes(level)) return level + ' ' + message
+		if (['error', 'warn'].some(e => level.includes(e))) return level + ' ' + message
 		return message
 	}),
 ]
@@ -27,7 +28,7 @@ loggers.add('out', {
 loggers.add('warn', {
 	levels: {warn: 1},
 	transports: [ new Console({ level: 'warn' }) ],
-	format: combine(...logFormat)
+	format: combine(colorize({level:true, colors: { warn: 'yellow' } }), ...logFormat)
 })
 
 type LoggerFunc = (msg:string) => winston.Logger

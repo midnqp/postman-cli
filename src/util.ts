@@ -8,7 +8,7 @@ import _ from 'lodash'
 import { logger } from './logger.js'
 export { logger, _ }
 
-export type PcliResource = psdk.Item | psdk.ItemGroup< psdk.Item > | psdk.Response
+export type PcliResource = psdk.Item | psdk.ItemGroup< any > | psdk.Response
 
 type ResourceDetails = {headers: any; params: any; query: any; body: any; url: {path: string; method: string}}
 
@@ -133,8 +133,8 @@ export function findRecurse (parent, args:string[]): PcliResource|Error {
 	return resource
 }
 
-function isIterable (value) {
-	return Symbol.iterator in Object(value);
+export function isIterable (value) {
+	return Symbol.iterator in Object(value)
 }
 
 export function isItem(value):value is psdk.Item  {
@@ -156,36 +156,42 @@ export function isColl(value): value is psdk.Collection {
 /**
  * Lists names of resources recursively.
  * Note that, this recursive function is reckless.
+ * @param args Doesn't seem to have a use-case here
+ * @param parent An iterable
+ * @param cb Callback function to execute for each item in `param`
  * @param optionalArgs Optional cmdline args
  * @kind util
  */
-export function listRecurse (parent, args: string[], names, optionalArgs?:Record<string,any>, currDepth=0) {
+export function listRecurse (parent, args: string[], names, cb:(store, item)=>void, optionalArgs?:Record<string,any>, currDepth=0) {
 	if (isIterable(parent)) parent.forEach(item => {
 		names.push([])
 		const store = names.at(-1)
 		let iter:any[] = []
 		let isDepthInc=false
 		if (optionalArgs && optionalArgs.d > currDepth) {
-			if (item instanceof psdk.ItemGroup) {
+			if ( isFolder(item) ) {
 				iter= item.items.all()
 				currDepth++
 				isDepthInc =true
 			}
-			else if (item instanceof psdk.Item)  {
+			else if (isItem(item))  {
 				iter =item.responses.all()
 				currDepth++
 				isDepthInc =true
 			}
 		}
-
-		const nameWithSymb = [getInstanceSymbol(item), item.name].join(' ')
-		store.push(nameWithSymb)
-		listRecurse(iter, args, store, optionalArgs, currDepth)
+		
+		cb(store, item)
+		//const nameWithSymb = [getInstanceSymbol(item), item.name].join(' ')
+		//store.push(nameWithSymb)
+		listRecurse(iter, args, store, cb, optionalArgs, currDepth)
 		if (isDepthInc) currDepth--
 	})
 }
 
-export function getInstanceSymbol(value) {
+export const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+export function getSymbol(value) {
 	let result = ''
 	if (isColl(value)) result= 'C'
 	else if (isFolder(value)) result='F'
@@ -210,6 +216,140 @@ export function showList (names) {
 
 	recurse(names)
 	return result
+}
+
+export function deepFind(arr, id) {
+	for (const item of arr) {
+		//console.log('deepfind', {givenId: id, currId: item.id, currName: item.name})
+		if (item.id === id) {
+			console.log('deppfind found match!')
+			return item
+		}
+		let isNewDepth = false
+		let nextArr:any[] = []
+		if (isFolder(item) || isColl(item)) {
+			nextArr = item.items.all()
+			isNewDepth=true
+		}
+		else if (isItem(item)) {
+			nextArr = item.responses.all()
+			isNewDepth=true
+		}
+		else if (!isPostmanEntity(item) && Array.isArray(item.items)) {
+			nextArr = item.items
+			isNewDepth=true
+		}
+		if (isNewDepth) {
+			const found = deepFind(nextArr, id)
+			if (found) {
+				console.log('found something')
+				return found
+			}
+		}
+	}
+}
+
+export function isPostmanEntity(item) {
+	return isFolder(item) || isItem(item) || isResp(item) || isColl(item)
+}
+
+export const getItemParent = (arr, id) => {
+	console.log('getItemParent NEW TASK from:', arr[0].name, id)
+	const parent = traverseListRecur(arr, ({item, nextArr}) =>{
+		console.log('getItemParent is traversing:', item.name, nextArr.length, nextArr.find(e => e.id == id)?.name)
+		if (nextArr.find(e => e.id == id)) return true
+	}, {resolvePostmanEntity:false, currDepth:0, stopOnResult:true})
+	if (!parent) console.log('getItemParent: not found')
+	else console.log('getItemParent: found!!!!')
+	return parent
+}
+
+/**
+ * Moves item/resource under parent.
+ */
+export function setParent(collection, parentId, itemId) {
+	const newParentInColl = deepFind([collection], parentId)
+	const itemInColl = deepFind(collection.items.all(), itemId)
+	const oldParentInColl = getItemParent([collection], itemInColl.id)
+	console.log('setParent:', [itemInColl.name, itemInColl.id])
+
+	let refAdd, refRemove
+	if (isFolder(newParentInColl) || isColl(newParentInColl))
+		refAdd = newParentInColl.items
+	else refAdd = newParentInColl.responses
+	
+	if (isFolder(oldParentInColl) || isColl(oldParentInColl))
+		refRemove = oldParentInColl.items
+	else refRemove = oldParentInColl.responses
+
+	if (oldParentInColl.id == newParentInColl.id) {
+		console.log('------ setParent: skipping, same parent', [oldParentInColl.name, newParentInColl.name])
+		return
+	}
+	refAdd.add(itemInColl)
+	refRemove.remove(itemInColl.id)
+	console.log('------- setParent: done', {newParent: newParentInColl.name, item: itemInColl.name})
+}
+
+/** 
+ * Recursively **deep**-traverses nested Postman
+ * resources. Any form of persistence
+ * between the recursion should be maintained
+ * in the callback `cb`.
+ *
+ * @param cb callback to run
+ * @return item
+ * If `cb` returned true, the current resource(item)
+ * is returned.
+ */
+export function traverseListRecur(arr, cb, options:any) {
+	let {currDepth=0, d:depth, collection, resolvePostmanEntity=true} = options
+	depth = Number(depth)
+	depth = Number.isNaN(depth)?100:depth
+	let nextArr:any[] = []
+
+	for (let item of arr) {
+		// get actual postman instance from collection
+		if (!isPostmanEntity(item) && resolvePostmanEntity) {
+			//const cbInner = ({item:itm}) => item.id === itm.id
+			//item = traverseListRecur(collection.items.all(), cbInner, {currDepth:0, depth:50})
+			//console.log('resolved postman entity', item.id)
+		}
+		let isDepthInc=false
+		if (depth > currDepth) {
+			if (isFolder(item) || isColl(item)) {
+				nextArr = item.items.all()
+				currDepth++
+				isDepthInc =true
+			}
+			else if (isItem(item))  {
+				nextArr =item.responses.all()
+				currDepth++
+				isDepthInc =true
+			}
+			else if (!isPostmanEntity(item) && Array.isArray(item.items)) {
+				nextArr = item.items
+				currDepth++
+				isDepthInc=true
+			}
+		}
+		const callbackRet = cb({item, nextArr, currDepth})
+		if (callbackRet===true) {
+			console.log('traverseListRecur: callbackRet was true!!!', item.name)
+			if (!options.result) options.result = []
+			options.result.push(item)
+			console.log('traverseListRecur: result.length', options.result.length, 'isDepthInc', isDepthInc)
+			if (options.stopOnResult) return item
+		}
+		if (isDepthInc) {
+			const retval = traverseListRecur(nextArr, cb, {...options, currDepth})
+			if (retval) {
+				console.log('traverseListRecur: nested retval found', options.stopOnResult)
+				return retval
+			}
+			currDepth--
+		}
+	}
 }
 
 export function getVariables(cmd) {

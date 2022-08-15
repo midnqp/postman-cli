@@ -182,8 +182,6 @@ export function listRecurse (parent, args: string[], names, cb:(store, item)=>vo
 		}
 		
 		cb(store, item)
-		//const nameWithSymb = [getInstanceSymbol(item), item.name].join(' ')
-		//store.push(nameWithSymb)
 		listRecurse(iter, args, store, cb, optionalArgs, currDepth)
 		if (isDepthInc) currDepth--
 	})
@@ -220,9 +218,7 @@ export function showList (names) {
 
 export function deepFind(arr, id) {
 	for (const item of arr) {
-		//console.log('deepfind', {givenId: id, currId: item.id, currName: item.name})
 		if (item.id === id) {
-			console.log('deppfind found match!')
 			return item
 		}
 		let isNewDepth = false
@@ -242,7 +238,6 @@ export function deepFind(arr, id) {
 		if (isNewDepth) {
 			const found = deepFind(nextArr, id)
 			if (found) {
-				console.log('found something')
 				return found
 			}
 		}
@@ -254,24 +249,20 @@ export function isPostmanEntity(item) {
 }
 
 export const getItemParent = (arr, id) => {
-	console.log('getItemParent NEW TASK from:', arr[0].name, id)
-	const parent = traverseListRecur(arr, ({item, nextArr}) =>{
-		console.log('getItemParent is traversing:', item.name, nextArr.length, nextArr.find(e => e.id == id)?.name)
+	const parent = traverseListRecur(arr, ({nextArr}) =>{
 		if (nextArr.find(e => e.id == id)) return true
-	}, {resolvePostmanEntity:false, currDepth:0, stopOnResult:true})
-	if (!parent) console.log('getItemParent: not found')
-	else console.log('getItemParent: found!!!!')
+	}, {currDepth:0, stopOnResult:true})
 	return parent
 }
 
 /**
  * Moves item/resource under parent.
+ * Checks for renames.
  */
-export function setParent(collection, parentId, itemId) {
+export function setParent(collection, parentId, item) {
 	const newParentInColl = deepFind([collection], parentId)
-	const itemInColl = deepFind(collection.items.all(), itemId)
+	const itemInColl = deepFind(collection.items.all(), item.id)
 	const oldParentInColl = getItemParent([collection], itemInColl.id)
-	console.log('setParent:', [itemInColl.name, itemInColl.id])
 
 	let refAdd, refRemove
 	if (isFolder(newParentInColl) || isColl(newParentInColl))
@@ -282,13 +273,23 @@ export function setParent(collection, parentId, itemId) {
 		refRemove = oldParentInColl.items
 	else refRemove = oldParentInColl.responses
 
-	if (oldParentInColl.id == newParentInColl.id) {
-		console.log('------ setParent: skipping, same parent', [oldParentInColl.name, newParentInColl.name])
-		return
+	const isSameParent = oldParentInColl.id == newParentInColl.id
+	const isSameName = item.name == itemInColl.name
+	if (!isSameName) itemInColl.name = item.name
+	if (!isSameParent) {
+		refAdd.add(itemInColl)
+		refRemove.remove(itemInColl.id)
 	}
-	refAdd.add(itemInColl)
-	refRemove.remove(itemInColl.id)
-	console.log('------- setParent: done', {newParent: newParentInColl.name, item: itemInColl.name})
+}
+
+export async function saveChanges (cmd, collection) {
+	const exportPath = env.collectionFilepath || cmd.parent.opts().collection
+	if (exportPath) fs.writeFile(exportPath, JSON.stringify(collection, null, 2))
+	
+	if (env.collectionUrl) {
+		const response = await axios.put(env.collectionUrl, collection)
+		logger.out(ex(parseAxiosError(response)))
+	}
 }
 
 /** 
@@ -297,24 +298,19 @@ export function setParent(collection, parentId, itemId) {
  * between the recursion should be maintained
  * in the callback `cb`.
  *
+ * @param arr list of collection/folder/request
  * @param cb callback to run
  * @return item
  * If `cb` returned true, the current resource(item)
  * is returned.
  */
 export function traverseListRecur(arr, cb, options:any) {
-	let {currDepth=0, d:depth, collection, resolvePostmanEntity=true} = options
+	let {currDepth=0, d:depth} = options
 	depth = Number(depth)
 	depth = Number.isNaN(depth)?100:depth
 	let nextArr:any[] = []
 
-	for (let item of arr) {
-		// get actual postman instance from collection
-		if (!isPostmanEntity(item) && resolvePostmanEntity) {
-			//const cbInner = ({item:itm}) => item.id === itm.id
-			//item = traverseListRecur(collection.items.all(), cbInner, {currDepth:0, depth:50})
-			//console.log('resolved postman entity', item.id)
-		}
+	for (const item of arr) {
 		let isDepthInc=false
 		if (depth > currDepth) {
 			if (isFolder(item) || isColl(item)) {
@@ -333,20 +329,15 @@ export function traverseListRecur(arr, cb, options:any) {
 				isDepthInc=true
 			}
 		}
-		const callbackRet = cb({item, nextArr, currDepth})
-		if (callbackRet===true) {
-			console.log('traverseListRecur: callbackRet was true!!!', item.name)
+		const resultCb = cb({item, nextArr, currDepth})
+		if (resultCb===true) {
 			if (!options.result) options.result = []
 			options.result.push(item)
-			console.log('traverseListRecur: result.length', options.result.length, 'isDepthInc', isDepthInc)
 			if (options.stopOnResult) return item
 		}
 		if (isDepthInc) {
-			const retval = traverseListRecur(nextArr, cb, {...options, currDepth})
-			if (retval) {
-				console.log('traverseListRecur: nested retval found', options.stopOnResult)
-				return retval
-			}
+			const result = traverseListRecur(nextArr, cb, {...options, currDepth})
+			if (result) return result
 			currDepth--
 		}
 	}
@@ -362,9 +353,11 @@ export function getVariables(cmd) {
  */
 export async function getCollection (cmd) {
 	const filepath = cmd.parent.opts().collection || env.collectionFilepath
+	const foundFile = await fileExists(filepath)
+	const collJson = await fs.readFile(filepath, 'utf8')
 	let _co: any = {}
-	if (filepath && (await fileExists(filepath)))
-		_co = JSON.parse(await fs.readFile(filepath, 'utf8'))
+	
+	if (filepath && foundFile) _co = JSON.parse(collJson)
 	else if (!filepath && env.apiKey && env.collectionUrl) {
 		const { data } = await axios.get(env.collectionUrl, {
 			headers: { 'X-API-Key': env.apiKey },
@@ -388,11 +381,3 @@ export function parseAxiosError(err){
 	const {config:{url}, response: {status, statusText, headers, data }} = err
 	return {url, status, statusText, headers, data }
 }
-
-//export function parseAxiosRes(res: AxiosResponse):ResourceDetails {
-	//return {
-		//url: res.config.url,
-		//body: res.data,
-		
-	//}
-//}

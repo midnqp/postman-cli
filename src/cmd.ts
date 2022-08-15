@@ -63,7 +63,7 @@ export default class {
 			}
 		}
 		if (parent.name) {
-			const parentName = util.getSymbol(parent) + ` ${parent.name}`
+			const parentName = util.getSymbol(parent) + parent.name
 			names.push([parentName])
 			store=names[0]
 		}
@@ -147,14 +147,8 @@ export default class {
 
 	/**
 	 * @todo rearrange by index under same parent
-	 * 
-	 * NOTE done at 0134 hrs, alhamdulillah
 	 */
 	static async listEdit (args: string[], ..._cmd) {
-		const defaultBeh = console.log
-		console.log = (...any) => {
-			if (process.env.DEBUG) defaultBeh(...any)
-		}
 		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
 		const co = await util.getCollection(cmd)
@@ -170,100 +164,48 @@ export default class {
 			return
 		}
 		
-		let itemsParent:psdk.PropertyList<psdk.Item | psdk.ItemGroup<psdk.Item>> | psdk.PropertyList<any> | psdk.PropertyList<psdk.Response>
-		let items:any[] = []
-		if (util.isFolder(resource)) {
-			items = resource.items.all()
-			itemsParent = resource.items
-		}
-		else if (util.isItem(resource)) {
-			items = resource.responses.all()
-			itemsParent = resource.responses
-		}
-		else { // collection
-			items = resource.items.all()
-			itemsParent=resource.items
-		}
+		/** For JSON file-edit by user. */
+		const names:any = []
+		listRecurEdit([resource], args, names, optional)
 
-		console.log(optional)
-		if (optional.recurse) {
-			/** For JSON file-edit by user. */
-			const names:any = []
-			//listRecurEdit([co], args, names, optional)
-			// Having [resource] is inevitable + important.
-			listRecurEdit([resource], args, names, optional)
-
-			const tmpFile = tmp.fileSync()
-			const fileContent = JSON.stringify(names, null, '\t')
-			await fs.writeFile(tmpFile.name, fileContent)
-			const editor = getEditorInfo([{file:tmpFile.name}])
-			if (editor.isTerminalEditor) spawnSync(editor.binary, [tmpFile.name], {stdio:'inherit'})
-			
-			else {
-				execFile(editor.binary)
-				await enquirer.prompt({name: 'press any key when changes done:', type: 'input', message: ''})
-			}
-
-			const sorted = JSON.parse(await fs.readFile(tmpFile.name, 'utf8'))
-			tmpFile.removeCallback()
-
-			const opsResult:any[] = []
-			/** From the user-edited JSON. */
-			const cbOps = ({item, nextArr, currDepth}) => {
-				console.log('cbOps', currDepth, [item.name, item.id], nextArr.map(e => e.name))
-				const _collection = util.deepFind([co], item.id)
-				if (util.isColl(_collection)) {console.log('found collection'); return}
-				else console.log('opsResult length', opsResult.length)
-				const parent = util.getItemParent(sorted, item.id)
-				util.setParent(co, parent.id, item.id)
-			}
-			// line below: doesn't work! why???
-			//util.traverseListRecur(sorted, cbOps, {...optional, collection:co})
-			//
-			// line below: works!! why??? git pushing anyway.
-			// i think, this is absolutely crucial. because,
-			// i'm specifying "public" "login user". anyone
-			// might want the parent of "login user"
-			util.traverseListRecur(sorted[0].items, cbOps, {...optional, collection:co, result:opsResult})
-		
-			// just show
-			const cbShow = (store, item) => {
-				store.push([util.getSymbol(item), item.name].join(' '))
-			}
-			const finalShow:any[] = []
-			util.listRecurse([resource], args, finalShow, cbShow, optional)
-			util.logger.out(util.showList(finalShow))
-		}
-
+		const tmpFile = tmp.fileSync()
+		const fileContent = JSON.stringify(names, null, '\t')
+		await fs.writeFile(tmpFile.name, fileContent)
+		const editor = getEditorInfo([{file:tmpFile.name}])
+		if (editor.isTerminalEditor) 
+			spawnSync(editor.binary, [tmpFile.name], {stdio:'inherit'})
 		else {
-			let res:any
-			let i =0
-			const deepItemNames:any = []
-			listRecurseChoices(items, args, deepItemNames, optional)
-			console.log(util.ex(deepItemNames))
-
-			const itemNames = items.map(e => ({name: String(i++), message: e.name}))	
-			try {
-				res = await enquirer.prompt({name: 'Move items', message:'', type:'sort', choices: deepItemNames}) //itemNames
-			}
-			catch(err) {return}
-			console.log(res)
-			const indexes = getIndex(res['mv'])
-			const result:any[] = []
-			itemsParent.clear()
-			for (let i=0; i < indexes.length; i++) {
-				result[i] = items[indexes[i]]
-				itemsParent.add(items[indexes[i]])
-			}
-
-			const exportPath = env.collectionFilepath || cmd.parent.opts().collection
-			if (exportPath) fs.writeFile(exportPath, JSON.stringify(co, null, 2))
-			
-			if (env.collectionUrl) {
-				const response = await axios.put(env.collectionUrl, co)
-				util.logger.out(util.ex(util.parseAxiosError(response)))
-			}
+			execFile(editor.binary)
+			await enquirer.prompt({name: 'press any key when changes done:', type: 'input', message: ''})
 		}
+
+		const editedFile = await fs.readFile(tmpFile.name, 'utf8')
+		const editedJson = JSON.parse(editedFile)
+		tmpFile.removeCallback()
+
+		let hasChanges = false
+		const opsResult:any[] = []
+		/** From the user-edited JSON. */
+		const cbOps = ({item}) => {
+			const _co = util.deepFind([co], item.id)
+			if (util.isColl(_co)) return
+			const parent = util.getItemParent(editedJson, item.id)
+			util.setParent(co, parent.id, item)
+			hasChanges = true
+		}
+		util.traverseListRecur(editedJson[0].items, cbOps, {...optional, collection:co, result:opsResult})
+	
+		// show the resource
+		const cbShow = (store, item) => {
+			const name = util.getSymbol(item) +' '+ item.name
+			store.push(name)
+		}
+		const finalShow:any[] = []
+		util.listRecurse([resource], args, finalShow, cbShow, optional)
+		util.logger.out(util.showList(finalShow))
+
+		// persist changes
+		if (hasChanges) util.saveChanges(cmd, co)
 	}
 }
 
@@ -299,39 +241,3 @@ function listRecurEdit (parent, args, names, optArgs, currDepth=0) {
 		}
 	}
 }
-
-function listRecurseChoices (parent, resourceArgs: string[], names, optionalArgs?:Record<string,any>, currDepth=0) {
-	if (util.isIterable(parent)) parent.forEach(item => {
-		let iter:any[] = []
-		let isDepthInc=false
-		if (optionalArgs && optionalArgs.d > currDepth) {
-			if ( util.isFolder(item) ) {
-				iter= item.items.all()
-				currDepth++
-				isDepthInc =true
-			}
-			else if (util.isItem(item))  {
-				iter =item.responses.all()
-				currDepth++
-				isDepthInc =true
-			}
-		}
-
-		const choice:any = {name: item.name}
-		let store = names
-		if (isDepthInc) {
-			choice.choices = []
-			names.push(choice)
-			store = names.at(-1).choices
-		}
-		else names.push(choice)
-		//names.push({name: item.name, choices:[]})
-		//const store = names.at(-1).choices
-		//store.push({})
-		
-		listRecurseChoices(iter, resourceArgs, store, optionalArgs, currDepth)
-		if (isDepthInc) currDepth--
-	})
-}
-
-function getIndex(arr) {return arr.map(e => typeof e == 'string'?stripAnsi(e.split(' ')[0]): e)}

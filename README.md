@@ -1,3 +1,4 @@
+
 <p align=center>
 <img src="https://user-images.githubusercontent.com/50658760/179565718-d6bed09d-86f8-4096-bcd8-03b610cd5624.png"/>
 </p>
@@ -7,7 +8,6 @@ Postman is a wondrous tool for backend developers. A friend. A single point of t
 
 (The project is pretty much in pre-release stage. Ideas/feedbacks are welcome!)
 
-## Usage
 ```
 Usage: pcli [options] [command]
 
@@ -30,229 +30,189 @@ Commands:
   help [command]                      display help for command
 ```
 
+For the purpose of brevity, a "resource" refers to a folder/request/example under a Postman collection. An example of pinpointing a nested resource is `$ pcli show user register 200`. Here, `user` is a folder, `register` is a request, and `200` is an example.
 
-## Usage
-Let's assume this Postman collection.
+The `.env` file can be used to specify a collection. 
+
+### `list [options] [resources...]`
+
+List resources recursively.
+
+Options:
+- `-d [number]  set recursive depth [1]`
+
 ```
-  ecommerce backend (collection)
-    |-- user (folder)
-    |     |-- register (request)
-    |     |     |-- 200 (example)
-    |     |     |-- 400
-    |     |     `-- 404
-    |     |-- get
-    |     |-- list
-    |     |-- update
-    |     `-- remove
-    `-- order
-          |-- create
-          |-- update
-          |-- list
-          |-- get
-          |-- remove
-          `-- checkout
-```
-
-
-### `list <nested resources...>`
-Lists collection/folder/request recursively.
-Option:
-	- `-d`, type: `number`, set recursive depth
-
-###### Collection
-`$ pcli list`
-
-
-###### Folder
-`$ pcli list user`
-```
-	F user
-			R register
-			R get
-			R list
-			R update
-			R remove
-```
-
-###### Request
-`$ pcli list user register`
-```
+$ pcli list user register
 	R register
+		E 200
+		E 400
+		E 404
+```
+```sh
+$ pcli list -d 2 user
+	F user
+		R register
 			E 200
 			E 400
 			E 404
+		R get
+		R list
+		R update
+		R remove
 ```
 
 
-### `show <nested resources...>`
-Shows a folder/request/example.
+### `show [options] [resources...]`
 
-For request:
-`$ pcli show user register`
-```
+Shows details of a resource.
+
+Options:
+- `--res` `include response`
+
+```sh
+$ pcli show --res users register			# request
+
 register post /users/register
 {
+  query: {
+    '$fields': 'id,fullName'
+  },
   body: {
-    fullName: 'Muadh Bin Jabal',
+    fullName: 'Muadh Bin Jabaal',
     userName: 'muadh'
-    country: 'Arabia',
+    password: 'password'
+  },
+  response: {
+    body: {
+      id: '7a96cbb8045a56d23dc1',
+      fullName: 'Muadh bin Jabal'
+    }
+  }
+}
+```
+```sh
+$ pcli show users			# folder
+
+register post /users/register
+{
+  query: {
+    '$fields': 'id,fullName'
+  },
+  body: {
+    fullName: 'Muadh Bin Jabaal',
+    userName: 'muadh',
+    language: [
+      'c++',
+      'carbon'
+    ],
     password: 'password'
   }
 }
-```
 
-For folder: 
-```
-Example: 200
-POST /users/register?$fields=id,fullName
-body: {
-  fullName: 'Muadh bin Jabal',
-  userName: 'muadh1'
-  country: 'Zajiratul Arab',
-  password: 'password'
-}
-response: {
-  user: {
-    id: '7a96cbb8045a56d23dc1',
-    fullName: 'Muadh bin Jabal'
-  }
-}
+login post /users/login
+{ body: { userName: 'muadh', password: 'password' } }
 
-Example: 400
-POST /users/register
-body: {
-  fullName: 'Muadh bin Jabal',
-  userName: 'muadh1'
-}
-response: {
-  error: {
-    code: 400,
-    message: 'INVALID_ARGUMENT',
-    details: [
-      { message: 'Required fields: country, password.', in: 'body' }
-    ]
+update put /users/:id
+{ params: { id: null } }
+
+list get /users/:id
+{ params: { id: null }, query: { '$fields': 'id,fullName' } }
+
+remove delete /users/:id
+{ params: { id: null } }
 ```
 
 
-```
-$ pcli show user update self --with-res
-PUT /users/:user_id
-body: { fullName: 'Muadh Bin Jabaal' }
-params: { user_id: '7a96cbb8045a56d23dc1' }
-query: { $fields: 'id,fullName' }
-200 OK
+
+### `run [options] [resources...]`
+TODO Run a request, using request data from a single request/example. Outputs response.
+
+Options:
+- `--meta` `include response meta`
+- `--header` `include response header`
+```sh
+$ pcli run --meta --header users register
 {
-  user: {
-    id: 7a96cbb8045a56d23dc1
-    fullName: 'Muadh Bin Jabaal'
+  code: 200,
+  status: 'OK',
+  size: '59 bytes',
+  time: '70ms',
+  header: { etag: 'W/"2e0-BhmP8Tg7Unp53FgyRTXTNA2zjFU"' },
+  body: {
+      id: '7a96cbb8045a56d23dc1',
+      fullName: 'Muadh Bin Jabaal'
   }
 }
 ```
 
 
+###  `add [options] [resources...]`
+TODO Adds a resource.
+```sh
+$ pcli add users		# adds request to folder
+{
+  name: 'update',
+  url: {
+    method: 'PUT',
+    path: '/users/:user_id'
+  },
+  params: { id: '7a96cbb8045a56d23dc1' },
+  query: { $fields: 'id,fullName' },
+  body: { fullName: 'Muadh Bin Jabaal' }
+}
 ```
-$ pcli edit user update self --with-res
-$ pcli edit 1 3 1 --with-res
-export default {
+
+
+
+### `show:edit [options] [resources...]`
+TODO Edit details of a single resource. 
+```
+$ pcli show:edit --res users register
+{
+  name: 'register',
   url: { 
     method: 'PUT',
-    baseURL: '/users/:user_id'
+    path: '/users/:user_id'
   },
-  body: { fullName: 'Muadh Bin Jabaal' }
-  params: { user_id: '7a96cbb8045a56d23dc1' }
-  query: { $fields: 'id,fullName' }
+  params: { id: '7a96cbb8045a56d23dc1' },
+  query: { $fields: 'id,fullName' },
+  body: { fullName: 'Muadh Bin Jabaal' },
   response: {
     code: 200,
     status: 'OK',
+    size: '59 bytes',
+    time: '70ms',
     body: {
-      user: {
-        id: 7a96cbb8045a56d23dc1
+        id: '7a96cbb8045a56d23dc1',
         fullName: 'Muadh Bin Jabaal'
-      }
     }
   }
 }
 ```
 
 
+
+### `list:edit [options] [resources...]`
+Rearranges, moves, renames a resource recursively.
 ```
-$ pcli list:edit  # id in grey, for rename, and move, recursive
-- user  b6c328436a6c00b08974
-  - list  f4c6c3e7e3fd8b06e15c
-    - list  6972e9e4b0cfdf251c9c
-    - search  f0867f6c622d6ca94f97
-  - get  93316b836165aa01958c
-  - update
-    - self
-    - admin
+$ pcli list:edit
+- user
   - register
     - ibrahim
     - saad
-    - muadh
+    - muadh 
+  - list
+    - sorted
+    - search
+  - get
+  - update
   - remove
-    - self
-    - admin
 ```
 
 
-```
-$ pcli list user update
-  1. self
-  2. admin
-```
 
-
+### `run:edit [options] [resources...]`
+TODO Run a request, after editing request data. Changes are not saved.
 ```
-$ pcli show user list search
-GET /users
-query: {
-  sort: 'createdAt',
-  fullName: 'muadh',
-  page: 2,
-  limit: 10,
-}
-```
-
-
-```
-$ pcli search 'list'
-4. user
-  1. list
-5. shop
-  1. list
-6. order
-  1. list
-```
-
-
-```
-$ pcli run:edit user update --with-meta
-PUT /users/:user_id
-params: { user_id: '7a96cbb8045a56d23dc1' }
-body:  {
-  fullName: 'Muhammad'
-  email: 'midnqp@gmail.com',
-  identity: 'Muslim'
-}
-
-70ms 1.1KB 200 OK
-{
-  etag: 'W/"2e0-BhmP8Tg7Unp53FgyRTXTNA2zjFU"'
-}
-{
-  user: {
-    id: 7a96cbb8045a56d23dc1
-    fullName: 'Muadh Bin Jabaal'
-  }
-}
-```
-
-```
-$ pcli create user register
-export default {
-  fullName: 'Muadh bin Jabal',
-  userName: 'muadh1'
-  country: 'Zajiratul Arab',
-  password: 'password'
-}
+$ pcli run:edit user register
 ```

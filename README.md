@@ -3,37 +3,106 @@
 </p>
 
 ## Origin
-Postman is a wonderous tool for backend developers. A friend. A single point of truth. Something that stays open alongside our code editor. However, using a graphical interface in a fast-moving work environment isn't convenient and/or productive. Most of us enjoy the most productivity with our keyboard, at our Terminal. So, why not bring Postman there?
+Postman is a wondrous tool for backend developers. A friend. A single point of truth. Something that stays open alongside our code editor. However, using a graphical interface in a fast-moving work environment may not be productive. Most of us enjoy the most productivity with our keyboard, at our Terminal. So, why not bring Postman as a commandline interface?
 
-(The project is pretty much in pre-pre-release brain-storming stage. Ideas/feedbacks are welcome!)
+(The project is pretty much in pre-release stage. Ideas/feedbacks are welcome!)
 
 ## Usage
-Let's assume this Postman collection:
+```
+Usage: pcli [options] [command]
+
+postman command-line interface
+
+Options:
+  -v, --version                       output the version number
+  -c, --collection <string>           path to collection
+  -H, --headers <string>              header for all requests
+  -V, --variables <string>            variable for all requests
+  -h, --help                          display help for command
+
+Commands:
+  show <shows...>                     show details of a resource
+  list [options] [resources...]       list resource heirarchy recursively
+  run [runs...]                       runs a request
+  run:edit [resources...]             edit and run a request
+  list:edit [options] [resources...]  edit a list of resources
+  search [resources...]               searches a resource
+  help [command]                      display help for command
+```
+
+
+## Usage
+Let's assume this Postman collection.
 ```
   ecommerce backend (collection)
-  |-- user (folder)
-  | |-- register (request)
-  | | |-- 200
-  | | `-- 400
-  | |-- get
-  | |-- list
-  | |-- update
-  | `-- remove
-  `-- order
-    |-- create
-    |-- update
-    |-- list
-    |-- get
-    |-- remove
-    `-- checkout
+    |-- user (folder)
+    |     |-- register (request)
+    |     |     |-- 200 (example)
+    |     |     |-- 400
+    |     |     `-- 404
+    |     |-- get
+    |     |-- list
+    |     |-- update
+    |     `-- remove
+    `-- order
+          |-- create
+          |-- update
+          |-- list
+          |-- get
+          |-- remove
+          `-- checkout
+```
+
+
+### `list <nested resources...>`
+Lists collection/folder/request recursively.
+Option:
+	- `-d`, type: `number`, set recursive depth
+
+###### Collection
+`$ pcli list`
+
+
+###### Folder
+`$ pcli list user`
+```
+	F user
+			R register
+			R get
+			R list
+			R update
+			R remove
+```
+
+###### Request
+`$ pcli list user register`
+```
+	R register
+			E 200
+			E 400
+			E 404
 ```
 
 
 ### `show <nested resources...>`
-```js
-$ pcli show user register
-POST /users/register
+Shows a folder/request/example.
 
+For request:
+`$ pcli show user register`
+```
+register post /users/register
+{
+  body: {
+    fullName: 'Muadh Bin Jabal',
+    userName: 'muadh'
+    country: 'Arabia',
+    password: 'password'
+  }
+}
+```
+
+For folder: 
+```
 Example: 200
 POST /users/register?$fields=id,fullName
 body: {

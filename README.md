@@ -4,35 +4,24 @@
 </p>
 
 ## Origin
-Postman is a wondrous tool for backend developers. A friend. A single point of truth. Something that stays open alongside our code editor. However, using a graphical interface in a fast-moving work environment may not be productive. Most of us enjoy the most productivity with our keyboard, at our Terminal. So, why not bring Postman as a commandline interface?
+Postman is a wondrous tool for backend developers. A friend. A single point of truth. Something that stays open alongside our code editor. However, using a graphical interface in a fast-moving work environment may not be productive. Most of us enjoy the most productivity with our keyboard, at our Terminal. So, why not bring Postman as a commandline interface? The project is pretty much in pre-release stage. Ideas/feedbacks are welcome!
 
-(The project is pretty much in pre-release stage. Ideas/feedbacks are welcome!)
 
-```
-Usage: pcli [options] [command]
+## CLI Options 
+For the purpose of brevity, a "resource" refers to a folder/request/example within a Postman collection. An example of pinpointing a nested resource is `$ pcli show user register 200`. Here, `user` is a folder, `register` is a request, and `200` is an example. So, the command shows the details of the example named `200`.
 
-postman command-line interface
+The `.env.example` file can be configured to specify a collection.
 
-Options:
-  -v, --version                       output the version number
-  -c, --collection <string>           path to collection
-  -H, --headers <string>              header for all requests
-  -V, --variables <string>            variable for all requests
-  -h, --help                          display help for command
-
-Commands:
-  show <shows...>                     show details of a resource
-  list [options] [resources...]       list resource heirarchy recursively
-  run [runs...]                       runs a request
-  run:edit [resources...]             edit and run a request
-  list:edit [options] [resources...]  edit a list of resources
-  search [resources...]               searches a resource
-  help [command]                      display help for command
-```
-
-For the purpose of brevity, a "resource" refers to a folder/request/example under a Postman collection. An example of pinpointing a nested resource is `$ pcli show user register 200`. Here, `user` is a folder, `register` is a request, and `200` is an example.
-
-The `.env` file can be used to specify a collection. 
+Postman CLI commands:
+- [list](#list-options-resources)
+- [show](#show-options-resources)
+- [run](#run-options-resources)
+- [add](#add-options-resources)
+- [mv](#mv-options-resources)
+- [search](#search-options-resources)
+- [list:edit](#listedit-options-resources)
+- [show:edit](#showedit-options-resources)
+- [run:edit](#runedit-options-resources)
 
 ### `list [options] [resources...]`
 

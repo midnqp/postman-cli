@@ -1,4 +1,3 @@
-
 <p align=center>
 <img src="https://user-images.githubusercontent.com/50658760/179565718-d6bed09d-86f8-4096-bcd8-03b610cd5624.png"/>
 
@@ -42,7 +41,7 @@ Postman CLI commands:
 List resources recursively.
 
 Options:
-- `-d [number]  set recursive depth [1]`
+- `-d [number]` `set recursive depth [1]`
 
 ```
 $ pcli list user register
@@ -71,9 +70,10 @@ Shows details of a resource.
 
 Options:
 - `--res` `include response`
+- `--meta` `include response meta`
 
 ```sh
-$ pcli show --res users register			# request
+$ pcli show --res --meta users register 200	# example
 
 register post /users/register
 {
@@ -86,6 +86,11 @@ register post /users/register
     password: 'password'
   },
   response: {
+    code: 200,
+    status: 'OK',
+    size: '59 bytes',
+    time: '70ms',
+    header: { etag: 'W/"2e0-BhmP8Tg7Unp53FgyRTXTNA2zjFU"' },
     body: {
       id: '7a96cbb8045a56d23dc1',
       fullName: 'Muadh bin Jabal'
@@ -94,7 +99,7 @@ register post /users/register
 }
 ```
 ```sh
-$ pcli show users			# folder
+$ pcli show users		# folder
 
 register post /users/register
 {

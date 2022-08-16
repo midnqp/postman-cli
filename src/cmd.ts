@@ -1,4 +1,4 @@
-import fs from 'node:fs/promises'
+import fs from 'fs/promises'
 import {watchFile, unwatchFile, watch} from 'fs'
 import psdk from 'postman-collection'
 import * as util from './util.js'
@@ -9,8 +9,8 @@ import env from './env.js'
 import chalk from 'chalk'
 import tmp from 'tmp'
 import {getEditorInfo} from 'open-editor'
-import {execFile, execFileSync, spawnSync} from 'node:child_process'
-import {inspect} from 'node:util'
+import {execFile, execFileSync, spawnSync} from 'child_process'
+import {inspect} from 'util'
 
 export default class {
 	/**
@@ -37,7 +37,7 @@ export default class {
 
 		result.forEach(output => {
 			if (util._.isError(output)) return util.logger.error(output.message)
-			util.logger.out(output)
+			util.logger.out(output+"\n")
 		})
 	}
 
@@ -63,7 +63,7 @@ export default class {
 			}
 		}
 		if (parent.name) {
-			const parentName = util.getSymbol(parent) + parent.name
+			const parentName = util.getSymbol(parent) + ' ' +parent.name
 			names.push([parentName])
 			store=names[0]
 		}

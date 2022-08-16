@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import chalk from 'chalk'
 import psdk from 'postman-collection'
 import axios, {AxiosResponse} from 'axios'
-import { inspect } from 'node:util'
+import { inspect } from 'util'
 import env from './env.js'
 import _ from 'lodash'
 import { logger } from './logger.js'
@@ -28,14 +28,20 @@ export function showDetails (resource: psdk.Item | psdk.Response| ResourceDetail
 	else details = resource
 	
 	const urlLine = details.url.method + ' ' + details.url.path
-	let result = chalk.inverse(name) + ' ' + urlLine
+	//let result = chalk.inverse(name) + ' ' + urlLine
+	let result = chalk.underline.bold(name) + ' ' + urlLine
 	const filteredDetails:any = {}
+	const toCompactKeys = ['body', 'params', 'query']
+	let isCompact=true
 	Object.entries(details).forEach(([ k, v ]) => {
 		if (ignore.includes(k)) return
+
+		if (toCompactKeys.includes(k) && _.isPlainObject(details[k]) && Object.keys(details[k]).length >= 4) isCompact=false
+
 		const _v = ex(v)
 		if (_v.length > 2) filteredDetails[k] = v
 	})
-	const formatted = ex(filteredDetails, true)
+	const formatted = ex(filteredDetails, isCompact)
 	result += formatted.length > 2 ? '\n'+formatted : ''
 	return result
 }

@@ -1,11 +1,25 @@
 
 <p align=center>
 <img src="https://user-images.githubusercontent.com/50658760/179565718-d6bed09d-86f8-4096-bcd8-03b610cd5624.png"/>
+
+<img src="https://badges.aleen42.com/src/node_flat_square.svg">
+&emsp;
+<img src="https://badges.aleen42.com/src/cli_flat_square.svg">
+&emsp;
+<img src="https://badges.aleen42.com/src/npm_flat_square.svg">
+&emsp;
+
+<img height=20px src="https://img.shields.io/badge/License-MIT-brightgreen.svg?style=for-the-badge">
+&emsp;
+<img height=20px src="https://img.shields.io/github/languages/code-size/midnqp/postman-cli?style=for-the-badge">
 </p>
 
-## Origin
+## :rocket: Origin
 Postman is a wondrous tool for backend developers. A friend. A single point of truth. Something that stays open alongside our code editor. However, using a graphical interface in a fast-moving work environment may not be productive. Most of us enjoy the most productivity with our keyboard, at our Terminal. So, why not bring Postman as a commandline interface? The project is pretty much in pre-release stage. Ideas/feedbacks are welcome!
 
+> The prime use-case is to work (add/remove/list/show/run/rearrange) with a postman collection - all from a command-line.
+
+> Another great use-case for this program is to be an organized Curl - to quick-run requests and save them.
 
 ## CLI Options 
 For the purpose of brevity, a "resource" refers to a folder/request/example within a Postman collection. An example of pinpointing a nested resource is `$ pcli show user register 200`. Here, `user` is a folder, `register` is a request, and `200` is an example. So, the command shows the details of the example named `200`.

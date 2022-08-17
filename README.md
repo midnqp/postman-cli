@@ -1,23 +1,24 @@
+<p align=center><img src="https://img.shields.io/badge/postman%20cli-an%20elegant%20command--line%20for%20postman%20collection-white?style=for-the-badge&logo=postman"></p><br><br>
+
+
 <p align=center>
-<img src="https://user-images.githubusercontent.com/50658760/179565718-d6bed09d-86f8-4096-bcd8-03b610cd5624.png"/>
+<!--img src="https://user-images.githubusercontent.com/50658760/179565718-d6bed09d-86f8-4096-bcd8-03b610cd5624.png"/-->
+<img height=20px src="https://badges.aleen42.com/src/node_flat_square.svg">
+&emsp;
+<img height=20px src="https://badges.aleen42.com/src/cli_flat_square.svg">
+&emsp;
+<img height=20px src="https://badges.aleen42.com/src/npm_flat_square.svg">
+&emsp;
 
-<img height=25px src="https://badges.aleen42.com/src/node_flat_square.svg">
+<img height=20px src="https://img.shields.io/badge/License-MIT-brightgreen.svg?style=for-the-badge">
 &emsp;
-<img height=25px src="https://badges.aleen42.com/src/cli_flat_square.svg">
-&emsp;
-<img height=25px src="https://badges.aleen42.com/src/npm_flat_square.svg">
-&emsp;
-
-<img height=25px src="https://img.shields.io/badge/License-MIT-brightgreen.svg?style=for-the-badge">
-&emsp;
-<img height=25px src="https://img.shields.io/github/languages/code-size/midnqp/postman-cli?style=for-the-badge">
+<img height=20px src="https://img.shields.io/github/languages/code-size/midnqp/postman-cli?style=for-the-badge">
 &emsp;
 <a href="https://github.com/midnqp/postman-cli/actions/workflows/build.yml">
-<img height=25px src="https://img.shields.io/github/workflow/status/MidnQP/postman-cli/Build/main?logo=github&style=for-the-badge">
+<img height=20px src="https://img.shields.io/github/workflow/status/MidnQP/postman-cli/Build/main?logo=github&style=for-the-badge">
 </a>
 </p>
 
-## :rocket: Origin
 Postman is a wondrous tool for backend developers. A friend. A single point of truth. Something that stays open alongside our code editor. However, using a graphical interface in a fast-moving work environment may not be productive. Most of us enjoy the most productivity with our keyboard, at our Terminal. So, why not bring Postman as a commandline interface? The project is pretty much in pre-release stage. Ideas/feedbacks are welcome!
 
 The prime use-case is to work with a postman collection from a command-line.

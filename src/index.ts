@@ -1,5 +1,5 @@
 import './env.js'
-import {Command} from 'commander'
+import { Command } from 'commander'
 import Cmd from './cmd.js'
 
 /**
@@ -13,36 +13,44 @@ program
 	.version('0.0.1', '-v, --version')
 	.helpOption('-h, --help')
 program
-	.option(
-		'-c, --collection <string>',
-		'path to collection'
-	)
+	.option('-c, --collection <string>', 'path to collection')
 	.option('-H, --headers <string>', 'header for all requests')
 	.option('-V, --variables <string>', 'variable for all requests')
 program
-	.command('show <shows...>')
+	.command('add <resources...>')
+	.description('adds a new resource')
+	.option('-t <type>', 'type of resource, one of: folder, request, example [request]')
+	.addHelpText(
+		'afterAll',
+		[
+			'',
+			'Example:',
+			'  $ pcli add -t folder  # add folder to collection',
+			'  $ pcli add -t request "new folder"	 # add request to folder'
+		].join('\n')
+	)
+program
+	.command('show <resources...>')
 	.description('show details of a resource')
-	//.option('-s', 'include response')
+	.option('--res', 'include response')
+	.option('--meta', 'include response meta')
 	.action(Cmd.show)
 program
 	.command('list [resources...]')
-	.description('list resource heirarchy recursively')
+	.description('list resources recursively')
 	.option('-d [number]', 'set recursive depth [0]')
 	.action(Cmd.list)
 program
-	.command('run [runs...]')
+	.command('run <resources...>')
 	.description('runs a request')
-	//.option('-r', 'include request details')
-	//.option('-s', 'include additional response details')
+	.option('--req', 'include request')
+	.option('--meta', 'include response meta')
 	.action(Cmd.run)
 program.command('run:edit [resources...]').description('edit and run a request')
 program
 	.command('list:edit [resources...]')
 	.description('edit a list of resources')
 	.option('-d [number]', 'set recursive depth [0]')
-	.option('--recurse', 'list and move items recursively')
 	.action(Cmd.listEdit)
-program
-	.command('search [resources...]')
-	.description('searches a resource')
+program.command('search <resources...>').description('searches a resource')
 program.parse()

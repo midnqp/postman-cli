@@ -1,4 +1,5 @@
 {
+	"name": "pcli",
 	"type": "module",
 	"scripts": {
 		"build": "tsc -p tsconfig.json",
@@ -7,7 +8,7 @@
 		"prepack:esbuild": "npx esbuild dist/src/index.js  --bundle --outfile=dist/index.build.js --format=esm --platform=node --banner:js=\"import {createRequire} from 'module'; const require = createRequire(import.meta.url); import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\"",
 		"prepack:babel": "npx babel dist/src -d dist/babel",
 		"prepack:webpack": "npx webpack --config webpack.config.cjs",
-		"prepack:pkg": "npx pkg --options ''--no-warnings' ./dist/webpack/main.js --out-path ./bin -C Brotli"
+		"prepack:pkg": "npx pkg --options '--no-warnings' ./dist/webpack/main.js --out-path ./bin -C Brotli"
 	},
 	"dependencies": {
 		"axios": "^0.27.2",
@@ -40,7 +41,9 @@
 		"@types/prompt-sync": "^4.1.1",
 		"@types/tmp": "^0.2.3",
 		"command-line-usage": "^6.1.3",
+		"release-it": "^15.3.0",
 		"swc": "^1.0.11",
+		"tsc-watch": "^5.0.3",
 		"typescript": "^4.7.4",
 		"webpack": "^5.74.0",
 		"webpack-cli": "^4.10.0"

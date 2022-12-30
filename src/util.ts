@@ -1,69 +1,68 @@
 import { promises as fs } from 'fs'
 import chalk from 'chalk'
 import psdk from 'postman-collection'
-import axios, {AxiosResponse} from 'axios'
+import axios, { AxiosResponse } from 'axios'
 import { inspect } from 'util'
 import env from './env.js'
 import _ from 'lodash'
 import { logger } from './logger.js'
 export { logger, _ }
 
-export type PcliResource = psdk.Item | psdk.ItemGroup< any > | psdk.Response
+export type PcliResource = psdk.Item | psdk.ItemGroup<any> | psdk.Response
 
-type ResourceDetails = {headers: any; params: any; query: any; body: any; url: {path: string; method: string}}
+type ResourceDetails = { headers: any; params: any; query: any; body: any; url: { path: string; method: string } }
 
 /**
  * Show an item/example formatted.
  * @kind util
  */
-export function showDetails (resource: psdk.Item | psdk.Response| ResourceDetails, ignore=['url', 'headers']) {
+export function showDetails(resource: psdk.Item | psdk.Response | ResourceDetails, ignore = ['url', 'headers']) {
 	let name = ''
-	let details:ResourceDetails
+	let details: ResourceDetails
 	if (isItem(resource) || isResp(resource)) {
 		const _details = getDetails(resource)
 		if (_.isError(_details)) return _details
 		details = _details
 		name = resource.name
-	}
-	else details = resource
-	
+	} else details = resource
+
 	const urlLine = details.url.method + ' ' + details.url.path
 	//let result = chalk.inverse(name) + ' ' + urlLine
 	let result = chalk.underline.bold(name) + ' ' + urlLine
-	const filteredDetails:any = {}
+	const filteredDetails: any = {}
 	const toCompactKeys = ['body', 'params', 'query']
-	let isCompact=true
-	Object.entries(details).forEach(([ k, v ]) => {
+	let isCompact = true
+	Object.entries(details).forEach(([k, v]) => {
 		if (ignore.includes(k)) return
 
-		if (toCompactKeys.includes(k) && _.isPlainObject(details[k]) && Object.keys(details[k]).length >= 4) isCompact=false
+		if (toCompactKeys.includes(k) && _.isPlainObject(details[k]) && Object.keys(details[k]).length >= 4)
+			isCompact = false
 
 		const _v = ex(v)
 		if (_v.length > 2) filteredDetails[k] = v
 	})
 	const formatted = ex(filteredDetails, isCompact)
-	result += formatted.length > 2 ? '\n'+formatted : ''
+	result += formatted.length > 2 ? '\n' + formatted : ''
 	return result
 }
 
 /** Gets details from Postman requests and examples. */
-export function getDetails (resource:psdk.Item|psdk.Response): Error | ResourceDetails  {
+export function getDetails(resource: psdk.Item | psdk.Response): Error | ResourceDetails {
 	let req: psdk.Request | undefined
 	if (resource instanceof psdk.Response) req = resource.originalRequest
 	else req = resource.request
 
-	if (!req)
-		return Error(`not found request data on "${resource.name}"`)
+	if (!req) return Error(`not found request data on "${resource.name}"`)
 
 	return {
 		params: req.url.variables.toObject(),
 		query: req.url.query.toObject(),
 		body: JSON.parse(req.body?.raw || '{}'),
 		url: {
-			path: req.url.getPath({ unresolved: true }), 
-			method: req.method.toLowerCase()
+			path: req.url.getPath({ unresolved: true }),
+			method: req.method.toLowerCase(),
 		},
-		headers: req.headers.toObject()
+		headers: req.headers.toObject(),
 	}
 }
 
@@ -71,15 +70,15 @@ export function getDetails (resource:psdk.Item|psdk.Response): Error | ResourceD
  * Pretty-prints an object recursively.
  * @kind util
  */
-export const ex = (o, compact=false) => {
+export const ex = (o, compact = false) => {
 	const result = inspect(o, {
 		indentationLvl: 2,
 		colors: true,
-		depth:5,
-		showHidden:false,
+		depth: 5,
+		showHidden: false,
 		compact,
 		maxArrayLength: 4,
-		maxStringLength: 16
+		maxStringLength: 16,
 		//sorted: true,
 	})
 	return result
@@ -87,13 +86,13 @@ export const ex = (o, compact=false) => {
 
 /**
  * Goes deep recursively and finds a nested
- * folder/request/example.
- * 
+ * resource.
+ *
  * @param parent A collection.
  * @param args Nested resources, as in: folder1 folder2 request1 example2
  * @kind util
  */
-export function findRecurse (parent, args:string[]): PcliResource|Error {
+export function findRecurse(parent, args: string[]): PcliResource | Error {
 	/** Finds next resource.  */
 	const findNext = (name: string, parentIter) => {
 		if (!parentIter.find) return
@@ -106,48 +105,44 @@ export function findRecurse (parent, args:string[]): PcliResource|Error {
 	const nextName = () => args[currDepth]
 	/** Additionally increments currDepth. */
 	const isLast = () => ++currDepth === maxDepth
-	let tmp 
+	let tmp
 
 	while (currDepth < maxDepth) {
 		const name = nextName()
-		tmp = findNext(name, resource) 
+		tmp = findNext(name, resource)
 		if (!tmp) {
 			let msg = ''
-			if (resource instanceof psdk.ItemGroup)
-				msg = `"${name}" not found in "${resource.name}".`
+			if (resource instanceof psdk.ItemGroup) msg = `"${name}" not found in "${resource.name}".`
 			else msg = `"${name}" not found in "${parent.name}".`
 			return Error(msg)
 		}
 		const isItemGroup = tmp instanceof psdk.ItemGroup
 		const isItem = tmp instanceof psdk.Item
 		const isResponse = tmp instanceof psdk.Response
-		
+
 		if (isItemGroup) {
 			if (isLast()) return tmp
 			resource = tmp.items
-		}
-		else if (isItem) {
+		} else if (isItem) {
 			if (isLast()) return tmp
 			resource = (tmp.responses as any).members
-		}
-		else if (isResponse) {
+		} else if (isResponse) {
 			if (isLast()) return tmp
-			resource = tmp 
-		}
-		else return Error(`Found unknown instance "${name}".`)
+			resource = tmp
+		} else return Error(`Found unknown instance "${name}".`)
 	}
 	return resource
 }
 
-export function isIterable (value) {
+export function isIterable(value) {
 	return Symbol.iterator in Object(value)
 }
 
-export function isItem(value):value is psdk.Item  {
+export function isItem(value): value is psdk.Item {
 	return psdk.Item.isItem(value)
 }
 
-export function isFolder(value):value is psdk.ItemGroup<any> {
+export function isFolder(value): value is psdk.ItemGroup<any> {
 	return psdk.ItemGroup.isItemGroup(value)
 }
 
@@ -168,55 +163,63 @@ export function isColl(value): value is psdk.Collection {
  * @param optionalArgs Optional cmdline args
  * @kind util
  */
-export function listRecurse (parent, args: string[], names, cb:(store, item)=>void, optionalArgs?:Record<string,any>, currDepth=0) {
-	if (isIterable(parent)) parent.forEach(item => {
-		names.push([])
-		const store = names.at(-1)
-		let iter:any[] = []
-		let isDepthInc=false
-		if (optionalArgs && optionalArgs.d > currDepth) {
-			if ( isFolder(item) ) {
-				iter= item.items.all()
-				currDepth++
-				isDepthInc =true
+export function listRecurse(
+	parent,
+	args: string[],
+	names,
+	cb: (store, item) => void,
+	optionalArgs?: Record<string, any>,
+	currDepth = 0
+) {
+	if (isIterable(parent))
+		parent.forEach(item => {
+			names.push([])
+			const store = names.at(-1)
+			let iter: any[] = []
+			let isDepthInc = false
+			if (optionalArgs && optionalArgs.d > currDepth) {
+				if (isFolder(item)) {
+					iter = item.items.all()
+					currDepth++
+					isDepthInc = true
+				} else if (isItem(item)) {
+					iter = item.responses.all()
+					currDepth++
+					isDepthInc = true
+				}
 			}
-			else if (isItem(item))  {
-				iter =item.responses.all()
-				currDepth++
-				isDepthInc =true
-			}
-		}
-		
-		cb(store, item)
-		listRecurse(iter, args, store, cb, optionalArgs, currDepth)
-		if (isDepthInc) currDepth--
-	})
+
+			cb(store, item)
+			listRecurse(iter, args, store, cb, optionalArgs, currDepth)
+			if (isDepthInc) currDepth--
+		})
 }
 
-export const sleep = ms => new Promise(r => setTimeout(r, ms))
+export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-export function getSymbol(value) {
+export function getResourceIcon(value) {
 	let result = ''
-	if (isColl(value)) result= 'C'
-	else if (isFolder(value)) result='F'
-	else if (isItem(value)) result= 'R'
-	else if (isResp(value)) result= 'E'
-	else result= '?'
-	
+	if (isColl(value)) result = 'C'
+	else if (isFolder(value)) result = 'F'
+	else if (isItem(value)) result = 'R'
+	else if (isResp(value)) result = 'E'
+	else result = '?'
+
 	return chalk.white(result)
 }
 
-export function showList (names) {
+export function showList(names) {
 	let result = ''
 	let tab = 0
-	const recurse = array => array.forEach(e => {
-		if (Array.isArray(e)) {
-			tab++
-			result += '\t'.repeat(tab)+ ' '+ e[0] +'\n'
-			recurse(e)
-		}
-		if (_.isEqual(array.at(-1), e)) tab--
-	})
+	const recurse = array =>
+		array.forEach(e => {
+			if (Array.isArray(e)) {
+				tab++
+				result += '\t'.repeat(tab) + ' ' + e[0] + '\n'
+				recurse(e)
+			}
+			if (_.isEqual(array.at(-1), e)) tab--
+		})
 
 	recurse(names)
 	return result
@@ -228,18 +231,16 @@ export function deepFind(arr, id) {
 			return item
 		}
 		let isNewDepth = false
-		let nextArr:any[] = []
+		let nextArr: any[] = []
 		if (isFolder(item) || isColl(item)) {
 			nextArr = item.items.all()
-			isNewDepth=true
-		}
-		else if (isItem(item)) {
+			isNewDepth = true
+		} else if (isItem(item)) {
 			nextArr = item.responses.all()
-			isNewDepth=true
-		}
-		else if (!isPostmanEntity(item) && Array.isArray(item.items)) {
+			isNewDepth = true
+		} else if (!isPostmanEntity(item) && Array.isArray(item.items)) {
 			nextArr = item.items
-			isNewDepth=true
+			isNewDepth = true
 		}
 		if (isNewDepth) {
 			const found = deepFind(nextArr, id)
@@ -254,10 +255,14 @@ export function isPostmanEntity(item) {
 	return isFolder(item) || isItem(item) || isResp(item) || isColl(item)
 }
 
-export const getItemParent = (arr, id) => {
-	const parent = traverseListRecur(arr, ({nextArr}) =>{
-		if (nextArr.find(e => e.id == id)) return true
-	}, {currDepth:0, stopOnResult:true})
+export function getItemParent (arr, parentid) {
+	const parent = traverseRecursively(
+		arr,
+		({ nextArr }) => {
+			if (nextArr.find(e => e.id == parentid)) return true
+		},
+		{ currDepth: 0, returnOnStop: true }
+	)
 	return parent
 }
 
@@ -271,12 +276,10 @@ export function setParent(collection, parentId, item) {
 	const oldParentInColl = getItemParent([collection], itemInColl.id)
 
 	let refAdd, refRemove
-	if (isFolder(newParentInColl) || isColl(newParentInColl))
-		refAdd = newParentInColl.items
+	if (isFolder(newParentInColl) || isColl(newParentInColl)) refAdd = newParentInColl.items
 	else refAdd = newParentInColl.responses
-	
-	if (isFolder(oldParentInColl) || isColl(oldParentInColl))
-		refRemove = oldParentInColl.items
+
+	if (isFolder(oldParentInColl) || isColl(oldParentInColl)) refRemove = oldParentInColl.items
 	else refRemove = oldParentInColl.responses
 
 	const isSameParent = oldParentInColl.id == newParentInColl.id
@@ -288,65 +291,74 @@ export function setParent(collection, parentId, item) {
 	}
 }
 
-export async function saveChanges (cmd, collection) {
+export async function saveChanges(cmd, collection) {
 	const exportPath = env.collectionFilepath || cmd.parent.opts().collection
 	if (exportPath) fs.writeFile(exportPath, JSON.stringify(collection, null, 2))
-	
+
 	if (env.collectionUrl) {
 		const response = await axios.put(env.collectionUrl, collection)
 		logger.out(ex(parseAxiosError(response)))
 	}
 }
 
-/** 
+/**
  * Recursively **deep**-traverses nested Postman
  * resources. Any form of persistence
  * between the recursion should be maintained
  * in the callback `cb`.
  *
- * @param arr list of collection/folder/request
- * @param cb callback to run
+ * @param recursivableArr 
+ * @param cb callback to run for each recursion
+ * @param options
+ * @kind recursive
  * @return item
  * If `cb` returned true, the current resource(item)
  * is returned.
  */
-export function traverseListRecur(arr, cb, options:any) {
-	let {currDepth=0, d:depth} = options
-	depth = Number(depth)
-	depth = Number.isNaN(depth)?100:depth
-	let nextArr:any[] = []
+export function traverseRecursively(
+	recursivableArr: Array<any>,
+	cb: (infoNext:{item, nextArr:Array<any>, currDepth:number}) => boolean|void,
+	options: { currDepth?: any; returnOnStop?: any; result?: any; d?: any }={}
+) {
+	let { currDepth = 0, d: maxDepth } = options
+	maxDepth = Number(maxDepth)
+	maxDepth = Number.isNaN(maxDepth) ? 100 : maxDepth
+	let nextArr: any[] = []
 
-	for (const item of arr) {
-		let isDepthInc=false
-		if (depth > currDepth) {
+	for (const item of recursivableArr) {
+		let isdepthinc = false
+		if (maxDepth > currDepth) {
 			if (isFolder(item) || isColl(item)) {
 				nextArr = item.items.all()
 				currDepth++
-				isDepthInc =true
-			}
-			else if (isItem(item))  {
-				nextArr =item.responses.all()
+				isdepthinc = true
+			} else if (isItem(item)) {
+				nextArr = item.responses.all()
 				currDepth++
-				isDepthInc =true
-			}
-			else if (!isPostmanEntity(item) && Array.isArray(item.items)) {
+				isdepthinc = true
+			} else if (!isPostmanEntity(item) && Array.isArray(item.items)) {
 				nextArr = item.items
 				currDepth++
-				isDepthInc=true
+				isdepthinc = true
 			}
+			else nextArr=[]
 		}
-		const resultCb = cb({item, nextArr, currDepth})
-		if (resultCb===true) {
+		const shouldstop = cb({ item, nextArr, currDepth })
+		if (shouldstop === true) {
 			if (!options.result) options.result = []
 			options.result.push(item)
-			if (options.stopOnResult) return item
+			if (options.returnOnStop) return item
 		}
-		if (isDepthInc) {
-			const result = traverseListRecur(nextArr, cb, {...options, currDepth})
+		if (isdepthinc) {
+			const result = traverseRecursively(nextArr, cb, { ...options, currDepth })
 			if (result) return result
 			currDepth--
 		}
 	}
+}
+
+export function getResourceByName(recursivableArr, name) {
+	return traverseRecursively(recursivableArr, ({item})=>item.name==name)
 }
 
 export function getVariables(cmd) {
@@ -357,12 +369,12 @@ export function getVariables(cmd) {
 /**
  * @kind util
  */
-export async function getCollection (cmd) {
+export async function getCollection(cmd) {
 	const filepath = cmd.parent.opts().collection || env.collectionFilepath
 	const foundFile = await fileExists(filepath)
 	const collJson = await fs.readFile(filepath, 'utf8')
 	let _co: any = {}
-	
+
 	if (filepath && foundFile) _co = JSON.parse(collJson)
 	else if (!filepath && env.apiKey && env.collectionUrl) {
 		const { data } = await axios.get(env.collectionUrl, {
@@ -370,20 +382,23 @@ export async function getCollection (cmd) {
 		})
 		_co = data.collection
 	}
-	
+
 	if (_.isEqual(_co, {})) logger.warn('no collection is found, creating new')
 	const co = _co.collection ? _co.collection : _co
 	return new psdk.Collection(co)
 }
 
-export function fileExists (path) {
+export function fileExists(path) {
 	return fs
 		.access(path)
 		.then(_ => true)
 		.catch(_ => false)
 }
 
-export function parseAxiosError(err){
-	const {config:{url}, response: {status, statusText, headers, data }} = err
-	return {url, status, statusText, headers, data }
+export function parseAxiosError(err) {
+	const {
+		config: { url },
+		response: { status, statusText, headers, data },
+	} = err
+	return { url, status, statusText, headers, data }
 }

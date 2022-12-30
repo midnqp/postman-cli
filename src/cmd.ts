@@ -41,63 +41,38 @@ export default class {
 		})
 	}
 
-	/**
-	 * List items in collection, folder, and request.
-	 * @kind command
-	 */
-	static async list (args:string[], ..._cmd) {
-		const [optional, cmd] = _cmd
-		args = args.map(e => e.toLowerCase())
-		const co = await util.getCollection(cmd)
-
-		util.traverseRecursively([co], (nextArgs) => {
-			const {item} = nextArgs
-			let d = nextArgs.currDepth
-
-			if (util.isResp(item)) d++;
-			const out = ['    '.repeat(d), util.getResourceIcon(item), item.name].join(' ')
-			util.logger.out(out)
-		}, {d:optional.d})
-	}
-	/*
 	static async list(args: string[], ..._cmd) {
 		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
 		const co = await util.getCollection(cmd)
-
-		const names: any[] = []
-		let parent: any = co
-		// Storage passed by address for listRecurse(). 
-		let recurseStore = names
-
+		let initialparent = [co]
 		if (args.length) {
-			parent = util.findRecurse(co, args)
-			if (util._.isError(parent)) {
-				util.logger.error(parent.message)
-				return
+			let i = 0
+			const cb = (nextArgs) => {
+				if (nextArgs.item.name == args[i]) {
+					i++
+					if (i == args.length) {
+						initialparent = nextArgs.nextArr // if last one
+						return util.traverseConsts.EXIT
+					}
+					return util.traverseConsts.NO_MORE
+				}
 			}
-		}
-		if (parent.name) {
-			const parentName = util.getResourceIcon(parent) + ' ' + parent.name
-			names.push([parentName])
-			recurseStore = names[0]
+			const result = []
+			util.traverseRecursively([co], cb, {result})
 		}
 
-		const cb = function (store, item) {
-			const result = util.getResourceIcon(item) + ' ' + item.name
-			store.push(result)
-		}
-		if (util.isFolder(parent) || util.isColl(parent))
-			util.listRecurse(parent.items.all(), args, recurseStore, cb, optional)
-		else if (util.isItem(parent)) util.listRecurse(parent.responses.all(), args, recurseStore, cb, optional)
-		else {
-			util.logger.error('expected either folder, or request')
-			return
+		const cb = nextArgs => {
+			const { item } = nextArgs
+			let d = nextArgs.currDepth
+			if (util.isResp(item)) d++ // reached to the last i.e. an example
+			const icon = util.getResourceIcon(item)
+			const out = ['    '.repeat(d), icon, item.name].join(' ')
+			util.logger.out(out)
 		}
 
-		util.logger.out(util.showList(names))
+		util.traverseRecursively(initialparent, cb, { d: optional.d })
 	}
-	*/
 
 	static async run(args: string[], ..._cmd) {
 		const [optional, cmd] = _cmd

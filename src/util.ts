@@ -255,7 +255,7 @@ export function isPostmanEntity(item) {
 	return isFolder(item) || isItem(item) || isResp(item) || isColl(item)
 }
 
-export function getItemParent (arr, parentid) {
+export function getItemParent(arr, parentid) {
 	const parent = traverseRecursively(
 		arr,
 		({ nextArr }) => {
@@ -307,7 +307,7 @@ export async function saveChanges(cmd, collection) {
  * between the recursion should be maintained
  * in the callback `cb`.
  *
- * @param recursivableArr 
+ * @param recursivableArr
  * @param cb callback to run for each recursion
  * @param options
  * @kind recursive
@@ -317,8 +317,8 @@ export async function saveChanges(cmd, collection) {
  */
 export function traverseRecursively(
 	recursivableArr: Array<any>,
-	cb: (infoNext:{item, nextArr:Array<any>, currDepth:number}) => boolean|void,
-	options: { currDepth?: any; returnOnStop?: any; result?: any; d?: any }={}
+	cb: (infoNext: { item; nextArr: Array<any>; currDepth: number }) => boolean | void,
+	options: { currDepth?: any; returnOnStop?: any; result?: any; d?: any } = {}
 ) {
 	let { currDepth = 0, d: maxDepth } = options
 	maxDepth = Number(maxDepth)
@@ -326,6 +326,7 @@ export function traverseRecursively(
 	let nextArr: any[] = []
 
 	for (const item of recursivableArr) {
+				process.stdout.write('~')
 		let isdepthinc = false
 		if (maxDepth > currDepth) {
 			if (isFolder(item) || isColl(item)) {
@@ -340,14 +341,16 @@ export function traverseRecursively(
 				nextArr = item.items
 				currDepth++
 				isdepthinc = true
-			}
-			else nextArr=[]
+			} else nextArr = []
 		}
-		const shouldstop = cb({ item, nextArr, currDepth })
-		if (shouldstop === true) {
+		const cbresult = cb({ item, nextArr, currDepth })
+		if (cbresult === true) {
 			if (!options.result) options.result = []
 			options.result.push(item)
 			if (options.returnOnStop) return item
+		} else if (cbresult === false) { // optimizations!! ;)
+			nextArr = []
+			currDepth = maxDepth
 		}
 		if (isdepthinc) {
 			const result = traverseRecursively(nextArr, cb, { ...options, currDepth })
@@ -356,9 +359,17 @@ export function traverseRecursively(
 		}
 	}
 }
+export const traverseConsts = {
+	/** just continue - usually `void` */
+	CONTINUE: undefined,
+	/** proceed no more in the current recursion */
+	NO_MORE: true as const,
+	/** immediate exit traverse */
+	EXIT: false as const,
+}
 
 export function getResourceByName(recursivableArr, name) {
-	return traverseRecursively(recursivableArr, ({item})=>item.name==name)
+	return traverseRecursively(recursivableArr, ({ item }) => item.name == name)
 }
 
 export function getVariables(cmd) {

@@ -1,4 +1,3 @@
-import './env.js'
 import { Command } from 'commander'
 import Cmd from './cmd.js'
 

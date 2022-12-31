@@ -7,64 +7,9 @@ import env from './env.js'
 import _ from 'lodash'
 import { logger } from './logger.js'
 export { logger, _ }
+export * from './view.js'
 
 export type PcliResource = psdk.Item | psdk.ItemGroup<any> | psdk.Response
-
-type ResourceDetails = { headers: any; params: any; query: any; body: any; url: { path: string; method: string } }
-
-/**
- * Show an item/example formatted.
- * @kind util
- */
-export function showDetails(resource: psdk.Item | psdk.Response | ResourceDetails, ignore = ['url', 'headers']) {
-	let name = ''
-	let details: ResourceDetails
-	if (isItem(resource) || isResp(resource)) {
-		const _details = getDetails(resource)
-		if (_.isError(_details)) return _details
-		details = _details
-		name = resource.name
-	} else details = resource
-
-	const urlLine = details.url.method + ' ' + details.url.path
-	//let result = chalk.inverse(name) + ' ' + urlLine
-	let result = chalk.underline.bold(name) + ' ' + urlLine
-	const filteredDetails: any = {}
-	const toCompactKeys = ['body', 'params', 'query']
-	let isCompact = true
-	Object.entries(details).forEach(([k, v]) => {
-		if (ignore.includes(k)) return
-
-		if (toCompactKeys.includes(k) && _.isPlainObject(details[k]) && Object.keys(details[k]).length >= 4)
-			isCompact = false
-
-		const _v = ex(v)
-		if (_v.length > 2) filteredDetails[k] = v
-	})
-	const formatted = ex(filteredDetails, isCompact)
-	result += formatted.length > 2 ? '\n' + formatted : ''
-	return result
-}
-
-/** Gets details from Postman requests and examples. */
-export function getDetails(resource: psdk.Item | psdk.Response): Error | ResourceDetails {
-	let req: psdk.Request | undefined
-	if (resource instanceof psdk.Response) req = resource.originalRequest
-	else req = resource.request
-
-	if (!req) return Error(`not found request data on "${resource.name}"`)
-
-	return {
-		params: req.url.variables.toObject(),
-		query: req.url.query.toObject(),
-		body: JSON.parse(req.body?.raw || '{}'),
-		url: {
-			path: req.url.getPath({ unresolved: true }),
-			method: req.method.toLowerCase(),
-		},
-		headers: req.headers.toObject(),
-	}
-}
 
 /**
  * Pretty-prints an object recursively.
@@ -112,21 +57,18 @@ export function findRecurse(parent, args: string[]): PcliResource | Error {
 		tmp = findNext(name, resource)
 		if (!tmp) {
 			let msg = ''
-			if (resource instanceof psdk.ItemGroup) msg = `"${name}" not found in "${resource.name}".`
+			if (isFolder(resource )) msg = `"${name}" not found in "${resource.name}".`
 			else msg = `"${name}" not found in "${parent.name}".`
 			return Error(msg)
 		}
-		const isItemGroup = tmp instanceof psdk.ItemGroup
-		const isItem = tmp instanceof psdk.Item
-		const isResponse = tmp instanceof psdk.Response
 
-		if (isItemGroup) {
+		if (isFolder(tmp)) {
 			if (isLast()) return tmp
 			resource = tmp.items
-		} else if (isItem) {
+		} else if (isItem(tmp)) {
 			if (isLast()) return tmp
 			resource = (tmp.responses as any).members
-		} else if (isResponse) {
+		} else if (isResp(tmp)) {
 			if (isLast()) return tmp
 			resource = tmp
 		} else return Error(`Found unknown instance "${name}".`)
@@ -152,6 +94,10 @@ export function isResp(value): value is psdk.Response {
 
 export function isColl(value): value is psdk.Collection {
 	return psdk.Collection.isCollection(value)
+}
+
+export function isReq (value): value is psdk.Request {
+	return psdk.Request.isRequest(value)
 }
 
 /**
@@ -326,7 +272,6 @@ export function traverseRecursively(
 	let nextArr: any[] = []
 
 	for (const item of recursivableArr) {
-				process.stdout.write('~')
 		let isdepthinc = false
 		if (maxDepth > currDepth) {
 			if (isFolder(item) || isColl(item)) {
@@ -341,14 +286,15 @@ export function traverseRecursively(
 				nextArr = item.items
 				currDepth++
 				isdepthinc = true
-			} else nextArr = []
+			} else nextArr = item // item isn't an array, sorry!
 		}
 		const cbresult = cb({ item, nextArr, currDepth })
-		if (cbresult === true) {
+		if (cbresult === traverseConsts.NO_MORE) {
 			if (!options.result) options.result = []
 			options.result.push(item)
 			if (options.returnOnStop) return item
-		} else if (cbresult === false) { // optimizations!! ;)
+		} else if (cbresult === traverseConsts.EXIT) {
+			// optimizations!! ;)
 			nextArr = []
 			currDepth = maxDepth
 		}
@@ -372,7 +318,28 @@ export function getResourceByName(recursivableArr, name) {
 	return traverseRecursively(recursivableArr, ({ item }) => item.name == name)
 }
 
-export function getVariables(cmd) {
+/**
+ * @param args nested resources
+ * e.g. folder2 folder1 request4 example1
+ */
+export function getResourceFromArgs(co, args) {
+	let i = 0
+	let resource
+	const cb = nextArgs => {
+		if (nextArgs.item.name == args[i]) {
+			i++
+			if (i == args.length) {
+				resource = nextArgs.item // if last one
+				return traverseConsts.EXIT
+			}
+			return traverseConsts.NO_MORE
+		}
+	}
+	traverseRecursively([co], cb)
+	return resource
+}
+
+export function getOptVariables(cmd) {
 	const variables = cmd.parent.opts().variables || env.variables || '{}'
 	return JSON.parse(variables)
 }
@@ -380,7 +347,7 @@ export function getVariables(cmd) {
 /**
  * @kind util
  */
-export async function getCollection(cmd) {
+export async function getOptCollection(cmd) {
 	const filepath = cmd.parent.opts().collection || env.collectionFilepath
 	const foundFile = await fileExists(filepath)
 	const collJson = await fs.readFile(filepath, 'utf8')

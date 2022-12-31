@@ -9,7 +9,20 @@ import chalk from 'chalk'
 import tmp from 'tmp'
 import { getEditorInfo } from 'open-editor'
 import { execFile, execFileSync, spawnSync } from 'child_process'
-import { inspect } from 'util'
+import { inspect, promisify } from 'util'
+import newman from 'newman'
+
+/**
+ * @throws Error
+ */
+function newmanRun(options: newman.NewmanRunOptions): Promise<newman.NewmanRunSummary> {
+	return new Promise((resl, rejc) => {
+		newman.run(options, (err, summary) => {
+			if (err) rejc(err)
+			resl(summary)
+		})
+	})
+}
 
 export default class {
 	/**
@@ -22,7 +35,7 @@ export default class {
 	static async show(args: string[], ...cmd) {
 		cmd = cmd[1]
 		args = args.map(e => e.toLowerCase())
-		const co = await util.getCollection(cmd)
+		const co = await util.getOptCollection(cmd)
 
 		// resource
 		const resource = util.findRecurse(co, args)
@@ -33,7 +46,7 @@ export default class {
 
 		// output
 		const result: Array<string | Error> = []
-		if (resource instanceof psdk.ItemGroup) resource.forEachItem(e => result.push(util.showDetails(e)))
+		if (util.isFolder(resource )) resource.forEachItem(e => result.push(util.showDetails(e)))
 		else result.push(util.showDetails(resource))
 		result.forEach(output => {
 			if (util._.isError(output)) return util.logger.error(output.message)
@@ -44,22 +57,9 @@ export default class {
 	static async list(args: string[], ..._cmd) {
 		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
-		const co = await util.getCollection(cmd)
+		const co = await util.getOptCollection(cmd)
 		let initialparent = [co]
 		if (args.length) {
-			let i = 0
-			const cb = (nextArgs) => {
-				if (nextArgs.item.name == args[i]) {
-					i++
-					if (i == args.length) {
-						initialparent = nextArgs.nextArr // if last one
-						return util.traverseConsts.EXIT
-					}
-					return util.traverseConsts.NO_MORE
-				}
-			}
-			const result = []
-			util.traverseRecursively([co], cb, {result})
 		}
 
 		const cb = nextArgs => {
@@ -74,6 +74,43 @@ export default class {
 		util.traverseRecursively(initialparent, cb, { d: optional.d })
 	}
 
+	static async run(args: string[], ..._cmd) {
+		const [optional, cmd] = _cmd
+		const variables = util.getOptVariables(cmd)
+		const co = await util.getOptCollection(cmd)
+		co.syncVariablesFrom(variables)
+
+		const resource = util.getResourceFromArgs(co, args)
+		try {
+			const summ = await newmanRun({ collection: co, folder: resource.id })
+			const execs = summ.run.executions
+			execs.forEach(exec => {
+				// @ts-ignore
+				const { response, request, item:_item, id } = exec
+				//console.log(exec)
+				const item = _item as any
+				//const outResponse = util.showDetails(response)
+				//if (util._.isError(outResponse)) {
+					//util.logger.error(outResponse.message)
+					//return
+				//}
+				//util.logger.out(outResponse)
+				const outRequest = util.showDetails(item)
+				if (util._.isError(outRequest)) {
+					util.logger.error(outRequest.message)
+					return
+				}
+				util.logger.out(outRequest)
+
+				const outResponse = util.showDetailsFromResponse(response)
+				util.logger.out(outResponse)
+			})
+		} catch (err:any) {
+			util.logger.error(err.toString())
+		}
+	}
+
+	/*
 	static async run(args: string[], ..._cmd) {
 		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
@@ -129,10 +166,11 @@ export default class {
 			return
 		}
 		if (optional.s) {
-			/** response meta: bytes, time, etc. */
+			// response meta: bytes, time, etc
 		}
 		util.logger.out(util.ex(result.data))
 	}
+	*/
 
 	/**
 	 * @todo rearrange by index under same parent
@@ -140,7 +178,7 @@ export default class {
 	static async listEdit(args: string[], ..._cmd) {
 		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
-		const co = await util.getCollection(cmd)
+		const co = await util.getOptCollection(cmd)
 		let resource: util.PcliResource | Error | psdk.Collection = co
 
 		if (args.length) resource = util.findRecurse(co, args)

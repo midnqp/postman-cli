@@ -454,3 +454,23 @@ export function parseAxiosError(err) {
 	} = err
 	return { url, status, statusText, headers, data }
 }
+
+/**
+ * If `raw` is false, then returns `PropertyList<any>`.
+ * Otherwise, returns any[].
+ */
+export function getChildren(parent, raw=true) {
+	let result: any = []
+
+	if (isFolder(parent) || isColl(parent)) {
+		result = parent.items
+		if (raw) result = result.all()
+	}
+	else if (isItem(parent)) {
+		result = parent.responses
+		if (raw) result = result.all()
+	}
+	else if (!isPostmanEntity(parent) && Array.isArray(parent.items)) result = parent.items
+
+	return result
+}

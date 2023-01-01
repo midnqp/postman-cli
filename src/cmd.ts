@@ -1,4 +1,4 @@
-import { Collection } from 'postman-collection'
+import * as psdk from 'postman-collection'
 import * as util from './util.js'
 import newman from 'newman'
 import { Command, Option } from 'commander'
@@ -104,7 +104,7 @@ export default class {
 			util.logger.error(resourceFrom.message)
 			return
 		}
-		let resourceTo: util.PcliResource | Collection | Error
+		let resourceTo: util.PcliResource | psdk.Collection | Error
 		if (args.to.length == 1 && args.to[0] == 'collection') resourceTo = co
 		else {
 			resourceTo = util.findRecurse(co, args.to)
@@ -131,5 +131,21 @@ export default class {
 		item.name = optional.name
 		util.showResourceListRecur([item?.parent() || co])
 		util.saveChanges(cmd, co)
+	}
+
+	static async delete(args:string[], ..._cmd) {
+		const [optional, cmd] = _cmd
+		const co = await util.getOptCollection(cmd)
+
+		const item = util.findRecurse(co, args)
+		if (util._.isError(item)) {
+			util.logger.error(item.message)
+			return
+		}
+		const parent = item.parent()
+		const children:psdk.PropertyList<any>= util.getChildren(parent, false)
+		children.remove(e => e.id == item.id, {})
+		util.saveChanges(cmd, co)
+		util.showResourceListRecur([parent])
 	}
 }

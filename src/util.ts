@@ -293,28 +293,22 @@ export function getItemParent(arr, parentid) {
  * Checks for renames.
  */
 export function setParent(collection:psdk.Collection, newParent, item) {
-	const newParentInColl = newParent
-	//const itemInColl = deepFind(collection.items.all(), item.id)
-	const itemInColl = item
-	const oldParentInColl = item.parent()
-	//const oldParentInColl = getItemParent([collection], itemInColl.id)
+	const oldParent = item.parent()
 
 	let refAdd, refRemove
-	if (isFolder(newParentInColl) || isColl(newParentInColl)) refAdd = newParentInColl.items
-	else refAdd = newParentInColl.responses
+	if (isFolder(newParent) || isColl(newParent)) refAdd = newParent.items
+	else refAdd = newParent.responses
 
-	if (isFolder(oldParentInColl) || isColl(oldParentInColl)) refRemove = oldParentInColl.items
-	else refRemove = oldParentInColl.responses
+	if (isFolder(oldParent) || isColl(oldParent)) refRemove = oldParent.items
+	else refRemove = oldParent.responses
 
-	const isSameParent = oldParentInColl.id == newParentInColl.id
-	const isSameName = item.name == itemInColl.name
-	if (!isSameName) itemInColl.name = item.name
+	const isSameParent = oldParent.id == newParent.id
+	const isSameName = item.name == item.name
+	if (!isSameName) item.name = item.name
 	if (!isSameParent) {
-		refAdd.add(itemInColl)
-		refRemove.remove(itemInColl.id)
+		refAdd.add(item)
+		refRemove.remove(item.id)
 	}
-
-	viewUtil.showResourceListRecur([collection])
 }
 
 export async function saveChanges(cmd, collection) {

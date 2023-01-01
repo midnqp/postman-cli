@@ -52,36 +52,47 @@ export function findRecurse(parent, args: string[]): PcliResource | Error {
 		return parentIter.find(rule => rule.name.toLowerCase() === name, {})
 	}
 
-	let resource = parent.items
+	let nextIterResource = parent.items
 	let currDepth = 0
 	const maxDepth = args.length
 	const nextName = () => args[currDepth]
 	/** Additionally increments currDepth. */
 	const isLast = () => ++currDepth === maxDepth
 	let tmp
+	const founditems:any = []
 
 	while (currDepth < maxDepth) {
 		const name = nextName()
-		tmp = findNext(name, resource)
+		tmp = findNext(name, nextIterResource)
 		if (!tmp) {
 			let msg = ''
-			if (isFolder(resource)) msg = `"${name}" not found in "${resource.name}".`
-			else msg = `"${name}" not found in "${parent.name}".`
+			if (isFolder(nextIterResource)) 
+				msg = `"${name}" not found inside "${nextIterResource.name}".`
+			else {
+				const resname = founditems.at(-1).name
+				msg = `"${name}" not found inside "${resname}".`
+			}
 			return Error(msg)
 		}
 
 		if (isFolder(tmp)) {
 			if (isLast()) return tmp
-			resource = tmp.items
+			founditems.push(tmp)
+			nextIterResource = tmp.items
 		} else if (isItem(tmp)) {
 			if (isLast()) return tmp
-			resource = (tmp.responses as any).members
+			founditems.push(tmp)
+			nextIterResource = (tmp.responses as any).members
 		} else if (isResp(tmp)) {
-			if (isLast()) return tmp
-			resource = tmp
+			founditems.push(tmp)
+			//if (isLast()) return tmp
+			//resource = tmp
+			// NOTE nothing can go beyond a response! Stop!
+			return tmp
 		} else return Error(`Found unknown instance "${name}".`)
+
 	}
-	return resource
+	return nextIterResource
 }
 
 export function isIterable(value) {

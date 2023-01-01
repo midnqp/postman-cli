@@ -1,12 +1,12 @@
 import fs from 'fs/promises'
-import psdk from 'postman-collection'
+import psdk, { Collection } from 'postman-collection'
 import * as util from './util.js'
 import enquirer from 'enquirer'
 import tmp from 'tmp'
 import { getEditorInfo } from 'open-editor'
 import { execFile, spawnSync } from 'child_process'
 import newman from 'newman'
-import {Command, ExecutableCommandOptions, Option} from 'commander'
+import { Command, ExecutableCommandOptions, Option } from 'commander'
 
 /**
  * @throws Error
@@ -42,7 +42,7 @@ export default class {
 
 		// output
 		const result: Array<string | Error> = []
-		if (util.isFolder(resource )) resource.forEachItem(e => result.push(util.showDetails(e)))
+		if (util.isFolder(resource)) resource.forEachItem(e => result.push(util.showDetails(e)))
 		else result.push(util.showDetails(resource))
 		result.forEach(output => {
 			if (util._.isError(output)) return util.logger.error(output.message)
@@ -54,20 +54,16 @@ export default class {
 		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
 		const co = await util.getOptCollection(cmd)
-		let initialparent = [co]
+		let initialparent:any = [co]
 		if (args.length) {
+			initialparent = util.findRecurse(co, args)
+			if (util._.isError(initialparent)) {
+				util.logger.error(initialparent.message)
+				return
+			}
 		}
-
-		const cb = nextArgs => {
-			const { item } = nextArgs
-			let d = nextArgs.currDepth
-			if (util.isResp(item)) d++ // reached to the last i.e. an example
-			const icon = util.getResourceIcon(item)
-			const out = ['    '.repeat(d), icon, item.name].join(' ')
-			util.logger.out(out)
-		}
-
-		util.traverseRecursively(initialparent, cb, { d: optional.d })
+		
+		util.showResourceListRecur(initialparent, {d:optional.d})
 	}
 
 	static async run(args: string[], ..._cmd) {
@@ -82,7 +78,7 @@ export default class {
 			const execs = summ.run.executions
 			execs.forEach(exec => {
 				// @ts-ignore
-				const { response, request, item:_item, id } = exec
+				const { response, request, item: _item, id } = exec
 				const item = _item as any
 				const outRequest = util.showDetails(item)
 				if (util._.isError(outRequest)) {
@@ -94,7 +90,7 @@ export default class {
 				const outResponse = util.showDetailsFromResponse(response)
 				util.logger.out(outResponse)
 			})
-		} catch (err:any) {
+		} catch (err: any) {
 			util.logger.error(err.toString())
 		}
 	}
@@ -102,13 +98,27 @@ export default class {
 	// pcli move --from resources... --to resources...
 	// notice that `pcli move` isn't variadic.
 	// it has options, which are variadic.
-	static async move (args:{from:string[], to:string[]}, cmd) {
-		const {parent, options}:{parent:Command, options:Option[]} = cmd
+	static async move(args: { from: string[]; to: string[] }, cmd) {
+		const { parent, options }: { parent: Command; options: Option[] } = cmd
 		const co = await util.getOptCollection(cmd)
 
-		//const resSource = util.getResourceFromArgs(co, args.from)
-		const resSource = util.getResourceFromArgsSWF([co], args.from)
-		const resTarget = util.getResourceFromArgs(co, args.to)
+		const resourceFrom = util.findRecurse(co, args.from)
+		if (util._.isError(resourceFrom)) {
+			util.logger.error(resourceFrom.message)
+			return
+		}
+		let resourceTo: util.PcliResource | Collection | Error
+		if (args.to.length == 1 && args.to[0] == 'collection') resourceTo = co
+		else {
+			resourceTo = util.findRecurse(co, args.to)
+			if (util._.isError(resourceTo)) {
+				util.logger.error(resourceTo.message)
+				return
+			}
+		}
+
+		util.setParent(co, resourceTo, resourceFrom)
+		util.saveChanges(cmd, co)
 	}
 
 	/**

@@ -38,12 +38,11 @@ export function showDetails(
 	}
 
 	const urlLine = details.url.method + ' ' + details.url.path
-	let result = '\n'+ chalk.underline.bold(name) + ' ' + urlLine
+	let result = '\n' + chalk.underline.bold(name) + ' ' + urlLine
 	const formatted = showFormattedObject(details, ignore)
 	result += formatted.length > 2 ? '\n' + formatted : ''
 	return result
 }
-
 
 // showFormattedObject(details, options: {ignorekeys: [], compactkeys:[]})
 function showFormattedObject(details, ignore) {
@@ -89,48 +88,59 @@ export function getDetailsFromRequestOrExample(
 	}
 }
 
-export function getDetailsFromResponse(r:psdk.Response) {
+export function getDetailsFromResponse(r: psdk.Response) {
 	const stream = r.stream
 	const headers = r.headers.toObject()
 
-	let body:any = stream
-	let _parsed=false
+	let body: any = stream
+	let _parsed = false
 	const contenttype = contentType.parse(headers['content-type'])
 	if (contenttype.type.includes('json') && stream) {
-		body=JSON.parse(stream.toString())
-		_parsed=true
-	}
-	else if (contenttype.type.includes('text') && stream) {
+		body = JSON.parse(stream.toString())
+		_parsed = true
+	} else if (contenttype.type.includes('text') && stream) {
 		body = stream.toString()
 		_parsed = true
 	}
 	// else if form-data -- parse and show as object
 	// else if image -- libcaca view
 	// else if sound -- play sound
-	
-	
-	return {_parsed, size:r.responseSize, time:r.responseTime, code: r.code, status:r.status, body, headers}
+
+	return { _parsed, size: r.responseSize, time: r.responseTime, code: r.code, status: r.status, body, headers }
 }
 
-export function showDetailsFromResponse(r:psdk.Response) {
+export function showDetailsFromResponse(r: psdk.Response) {
 	const details = getDetailsFromResponse(r)
-	let result = '\n'+chalk.underline.bold('response')
+	let result = '\n' + chalk.underline.bold('response')
 
-	let color=chalk.black
-	switch(r.code.toString()[0]) {
+	let color = chalk.black
+	switch (r.code.toString()[0]) {
 		case '2':
-			color=chalk.green
+			color = chalk.green
 			break
 		case '4':
 		case '5':
-			color=chalk.red
+			color = chalk.red
 			break
 		default:
-			color=chalk.yellow
+			color = chalk.yellow
 			break
 	}
-	result+=' ' + color(details.code + ' ' + details.status) + '\n'
+	result += ' ' + color(details.code + ' ' + details.status) + '\n'
 
 	result += showFormattedObject(details, ['_parsed', 'code', 'status'])
 	return result
+}
+
+export function showResourceListRecur(initialparent, options = {}) {
+	const cb = nextArgs => {
+		const { item } = nextArgs
+		let d = nextArgs.currDepth
+		if (util.isResp(item)) d++ // reached to the last i.e. an example
+		const icon = util.getResourceIcon(item)
+		const out = ['    '.repeat(d), icon, item.name].join(' ')
+		util.logger.out(out)
+	}
+
+	util.traverseRecursively(initialparent, cb, options)
 }

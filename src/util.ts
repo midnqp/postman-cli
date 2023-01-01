@@ -7,6 +7,7 @@ import env from './env.js'
 import _ from 'lodash'
 import { logger } from './logger.js'
 export { logger, _ }
+import * as viewUtil from './view.js'
 export * from './view.js'
 
 export type PcliResource = psdk.Item | psdk.ItemGroup<any> | psdk.Response
@@ -29,9 +30,16 @@ export const ex = (o, compact = false) => {
 	return result
 }
 
+
+export function benchSync(cb) {
+	const d = performance.now()
+	cb()
+	return performance.now()-d
+}
+
 /**
  * Goes deep recursively and finds a nested
- * resource.
+ * resource. The most efficient to get a resource from args[].
  *
  * @param parent A collection.
  * @param args Nested resources, as in: folder1 folder2 request1 example2
@@ -40,7 +48,7 @@ export const ex = (o, compact = false) => {
 export function findRecurse(parent, args: string[]): PcliResource | Error {
 	/** Finds next resource.  */
 	const findNext = (name: string, parentIter) => {
-		if (!parentIter.find) return
+		if (!parentIter.find) return // commentable?? TODO
 		return parentIter.find(rule => rule.name.toLowerCase() === name, {})
 	}
 
@@ -144,14 +152,16 @@ export function listRecurse(
 export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 export function getResourceIcon(value) {
-	let result = ''
-	if (isColl(value)) result = 'C'
-	else if (isFolder(value)) result = 'F'
-	else if (isItem(value)) result = 'R'
-	else if (isResp(value)) result = 'E'
-	else result = '?'
+	let text = ''
+	let color=chalk.bold
+	if (isColl(value)) 
+		text = 'C'
+	else if (isFolder(value)) text = 'F'
+	else if (isItem(value)) text = 'R'
+	else if (isResp(value)) text = 'E'
+	else text = '?'
 
-	return chalk.white(result)
+	return color(' '+text+' ' )
 }
 
 export function showList(names) {
@@ -242,7 +252,7 @@ export function traverseShallowFirst(recursivable: any[], cb, options: any = {})
 
 export function getResourceFromArgsSWF(recursivable: any[], args: string[]) {
 	const cb = ({ item, nextArr }) => {
-		console.log(getResourceIcon(item), item.name, nextArr.length)
+		//console.log(getResourceIcon(item), item.name, nextArr.length)
 	}
 	const resource = traverseShallowFirst(recursivable, cb)
 	return resource
@@ -252,6 +262,10 @@ export function isPostmanEntity(item) {
 	return isFolder(item) || isItem(item) || isResp(item) || isColl(item)
 }
 
+/**
+ * traverse the entire collection and find his parent!
+ * inefficient! just use item.parent()
+ */
 export function getItemParent(arr, parentid) {
 	const parent = traverseRecursively(
 		arr,
@@ -267,10 +281,12 @@ export function getItemParent(arr, parentid) {
  * Moves item/resource under parent.
  * Checks for renames.
  */
-export function setParent(collection, parentId, item) {
-	const newParentInColl = deepFind([collection], parentId)
-	const itemInColl = deepFind(collection.items.all(), item.id)
-	const oldParentInColl = getItemParent([collection], itemInColl.id)
+export function setParent(collection:psdk.Collection, newParent, item) {
+	const newParentInColl = newParent
+	//const itemInColl = deepFind(collection.items.all(), item.id)
+	const itemInColl = item
+	const oldParentInColl = item.parent()
+	//const oldParentInColl = getItemParent([collection], itemInColl.id)
 
 	let refAdd, refRemove
 	if (isFolder(newParentInColl) || isColl(newParentInColl)) refAdd = newParentInColl.items
@@ -286,10 +302,12 @@ export function setParent(collection, parentId, item) {
 		refAdd.add(itemInColl)
 		refRemove.remove(itemInColl.id)
 	}
+
+	viewUtil.showResourceListRecur([collection])
 }
 
 export async function saveChanges(cmd, collection) {
-	const exportPath = env.collectionFilepath || cmd.parent.opts().collection
+	const exportPath = cmd.parent.opts().collection || env.collectionFilepath
 	if (exportPath) fs.writeFile(exportPath, JSON.stringify(collection, null, 2))
 
 	if (env.collectionUrl) {
@@ -415,6 +433,13 @@ export async function getOptCollection(cmd) {
 	if (_.isEqual(_co, {})) logger.warn('no collection is found, creating new')
 	const co = _co.collection ? _co.collection : _co
 	return new psdk.Collection(co)
+}
+
+export function getResponsecodeIcon(code, text) {
+	return code + ' '+text
+}
+export function getRequestmethodIcon(method:string) {
+	return method
 }
 
 export function fileExists(path) {

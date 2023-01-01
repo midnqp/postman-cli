@@ -16,6 +16,39 @@ function newmanRun(options: newman.NewmanRunOptions): Promise<newman.NewmanRunSu
 }
 
 export default class {
+	static async reorder(args: string[], ..._cmd) {
+		const [optional, cmd] = _cmd
+		const co = await util.getOptCollection(cmd)
+		const resource = util.findRecurse(co, args)
+		if (util._.isError(resource)) {
+			util.logger.error(resource.message)
+			return
+		}
+		let optIndex = Number(optional.index)
+
+		const parent = resource.parent()
+		const children: psdk.PropertyList<any> = util.getChildren(parent, false)
+		const rawChildren = children.all()
+		const length = rawChildren.length
+		const firstone = rawChildren[0]
+		const lastone = rawChildren[length - 1]
+	
+		// check if reuesting reorder into the same index
+		const notsamepos = idx => resource.id !== rawChildren[idx].id
+
+		if (length > 1) {
+			optIndex = optIndex - 1 // it was 1-based index
+			if (optIndex >= length) {
+				notsamepos(length - 1) && children.insert(resource, undefined)
+			} else if (optIndex <= 0) notsamepos(0) && children.insert(resource, firstone.id)
+			else {
+				notsamepos(optIndex) && children.insertAfter(resource, rawChildren[optIndex - 1].id)
+			}
+		}
+
+		util.showResourceListRecur([parent])
+		util.saveChanges(cmd, co)
+	}
 	/**
 	 * Show request body, query, path variables,
 	 * headers, and few details.
@@ -49,7 +82,7 @@ export default class {
 		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
 		const co = await util.getOptCollection(cmd)
-		let initialparent:any = [co]
+		let initialparent: any = [co]
 
 		if (args.length) {
 			const res = util.findRecurse(co, args)
@@ -59,8 +92,8 @@ export default class {
 			}
 			initialparent = [res]
 		}
-		
-		util.showResourceListRecur(initialparent, {d:optional.d})
+
+		util.showResourceListRecur(initialparent, { d: optional.d })
 	}
 
 	static async run(args: string[], ..._cmd) {
@@ -119,7 +152,7 @@ export default class {
 		util.saveChanges(cmd, co)
 	}
 
-	static async rename(args:string[], ..._cmd: [{name:string}, Command]) {
+	static async rename(args: string[], ..._cmd: [{ name: string }, Command]) {
 		const [optional, cmd] = _cmd
 		const co = await util.getOptCollection(cmd)
 
@@ -133,7 +166,7 @@ export default class {
 		util.saveChanges(cmd, co)
 	}
 
-	static async delete(args:string[], ..._cmd) {
+	static async delete(args: string[], ..._cmd) {
 		const [optional, cmd] = _cmd
 		const co = await util.getOptCollection(cmd)
 
@@ -143,7 +176,7 @@ export default class {
 			return
 		}
 		const parent = item.parent()
-		const children:psdk.PropertyList<any>= util.getChildren(parent, false)
+		const children: psdk.PropertyList<any> = util.getChildren(parent, false)
 		children.remove(e => e.id == item.id, {})
 		util.saveChanges(cmd, co)
 		util.showResourceListRecur([parent])

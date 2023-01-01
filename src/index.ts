@@ -39,7 +39,7 @@ program
 	.action(Cmd.move)
 program.command('rename <resources...>').requiredOption('--name <string>', 'new name of resource').action(Cmd.rename)
 program.command('delete <resources...>').action(Cmd.delete)
-program.command('reorder <resources...>').option('--index [number]', '1-based index')
+program.command('reorder <resources...>').requiredOption('--index <number>', 'new 1-based index').action(Cmd.reorder)
 program
 	.command('add')
 	.description('adds a new resource')

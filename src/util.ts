@@ -57,7 +57,7 @@ export function findRecurse(parent, args: string[]): PcliResource | Error {
 		tmp = findNext(name, resource)
 		if (!tmp) {
 			let msg = ''
-			if (isFolder(resource )) msg = `"${name}" not found in "${resource.name}".`
+			if (isFolder(resource)) msg = `"${name}" not found in "${resource.name}".`
 			else msg = `"${name}" not found in "${parent.name}".`
 			return Error(msg)
 		}
@@ -96,7 +96,7 @@ export function isColl(value): value is psdk.Collection {
 	return psdk.Collection.isCollection(value)
 }
 
-export function isReq (value): value is psdk.Request {
+export function isReq(value): value is psdk.Request {
 	return psdk.Request.isRequest(value)
 }
 
@@ -171,6 +171,11 @@ export function showList(names) {
 	return result
 }
 
+// wrong:
+// if you have `n` items, you don't go deep into
+// 0th item of `n` items. Rather you check for
+// the current `n` items first, then you go deep
+// into 0th item of `n`.
 export function deepFind(arr, id) {
 	for (const item of arr) {
 		if (item.id === id) {
@@ -195,6 +200,52 @@ export function deepFind(arr, id) {
 			}
 		}
 	}
+}
+
+/**
+ * For n items, checks (runs callback) for each item first.
+ *
+ * Secondly, goes out deep in ascending order, for each item.
+ *
+ * Seems like more performant! Alhamdulillah!
+ */
+export function traverseShallowFirst(recursivable: any[], cb, options: any = {}) {
+	let nextArr: any[] = []
+
+	const nextArrMap: Array<any[]> = []
+
+	for (let i = 0; i < recursivable.length; i++) {
+		const item = recursivable[i]
+
+		if (isFolder(item) || isColl(item)) {
+			nextArr = item.items.all()
+			nextArrMap[i] = nextArr
+		} else if (isItem(item)) {
+			nextArr = item.responses.all()
+			nextArrMap[i] = nextArr
+		} else if (!isPostmanEntity(item) && Array.isArray(item.items)) {
+			nextArr = item.items
+			nextArrMap[i] = nextArr
+		}
+
+		const cbresult = cb({ nextArr, currArr: recursivable, item })
+		if (cbresult) return cbresult
+	}
+
+	for (let i = 0; i < recursivable.length; i++) {
+		const nextArr = nextArrMap[i]
+		if (!Array.isArray(nextArr)) continue
+		const found = traverseShallowFirst(nextArr, cb)
+		if (found) return found
+	}
+}
+
+export function getResourceFromArgsSWF(recursivable: any[], args: string[]) {
+	const cb = ({ item, nextArr }) => {
+		console.log(getResourceIcon(item), item.name, nextArr.length)
+	}
+	const resource = traverseShallowFirst(recursivable, cb)
+	return resource
 }
 
 export function isPostmanEntity(item) {
@@ -263,7 +314,7 @@ export async function saveChanges(cmd, collection) {
  */
 export function traverseRecursively(
 	recursivableArr: Array<any>,
-	cb: (infoNext: { item; nextArr: Array<any>; currDepth: number }) => boolean | void,
+	cb: (infoNext: { item; currArr: Array<any>; nextArr: Array<any>; currDepth: number }) => boolean | void,
 	options: { currDepth?: any; returnOnStop?: any; result?: any; d?: any } = {}
 ) {
 	let { currDepth = 0, d: maxDepth } = options
@@ -288,7 +339,7 @@ export function traverseRecursively(
 				isdepthinc = true
 			} else nextArr = item // item isn't an array, sorry!
 		}
-		const cbresult = cb({ item, nextArr, currDepth })
+		const cbresult = cb({ item, nextArr, currDepth, currArr: recursivableArr })
 		if (cbresult === traverseConsts.NO_MORE) {
 			if (!options.result) options.result = []
 			options.result.push(item)

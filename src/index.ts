@@ -12,23 +12,20 @@ program
 	.option('-h, --headers <string>', 'header for all requests')
 	.option('-v, --variables <string>', 'variable for all requests')
 program
-	.command('add <resources...>')
+	.command('add')
 	.description('adds a new resource')
-	.option('-t <type>', 'type of resource, one of: folder, request, example [request]')
-	.addHelpText(
-		'afterAll',
-		[
-			'',
-			'Example:',
-			'  $ pcli add -t folder  # add folder to collection',
-			'  $ pcli add -t request "new folder"	 # add request to folder',
-		].join('\n')
-	)
+	//.option('-t <type>', 'type of resource, one of: folder, request, example [request]')
+	.option('--parent <resources...>',  'parent of new resource')
+	// TODO: take interactive prompts of input for this command
+	// prompts: type, name, then... different fields based on `type`
 program
 	.command('show <resources...>')
 	.description('show details of a resource')
-	.option('--res', 'include response body')
-	.option('--info', 'include response info')
+	.option('--res', 'include example response body')
+	.option('--info', 'include additional info, if available')
+	.option('--compact', 'shorten response')
+	.option('--hide <string>', 'hide comma-separated object paths')
+	.option('-hl, --highlight <string>', 'highlight comma-separated object paths')
 	.action(Cmd.show)
 program
 	.command('list [resources...]')
@@ -41,12 +38,22 @@ program
 	.option('--req', 'include request')
 	.option('--info', 'include response info')
 	.action(Cmd.run)
-program.command('run:edit [resources...]').description('edit and run a request, without saving changes')
 program
-	.command('list:edit [resources...]')
-	.description('edit a list of resources')
-	.option('-d [number]', 'set recursive depth [0]')
-	.action(Cmd.listEdit)
+	.command('move')
+	.option('--from <resources...>')
+	.option('--to <resources...>')
+	.description('move a resource under another parent')
+	.action(Cmd.move)
+program.command('quickrun [resources...]').description('edit and run a request, without saving changes')
+program.command('rename <newname> <resources...>')
+program.command('delete <resources...>')
+program.command('reorder <resources...>').option('--index [number]', '1-based index')
+program.command('simple').description('run any simple request')
+.option('--url <string>')
+.option('--method <string>').option('--data [string]').option('--headers [string]', 'headers as a json string')
+program.command('update <resources...>')
+program.command('workspace').description('manage workspaces')
+program.command('env').description('manage environment variables')// represented as a big json
 program
 	.command('search <resources...>')
 	.description('searches by name of resource')

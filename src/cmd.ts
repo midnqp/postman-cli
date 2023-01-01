@@ -1,12 +1,7 @@
-import fs from 'fs/promises'
-import psdk, { Collection } from 'postman-collection'
+import { Collection } from 'postman-collection'
 import * as util from './util.js'
-import enquirer from 'enquirer'
-import tmp from 'tmp'
-import { getEditorInfo } from 'open-editor'
-import { execFile, spawnSync } from 'child_process'
 import newman from 'newman'
-import { Command, ExecutableCommandOptions, Option } from 'commander'
+import { Command, Option } from 'commander'
 
 /**
  * @throws Error
@@ -121,6 +116,20 @@ export default class {
 
 		util.setParent(co, resourceTo, resourceFrom)
 		util.showResourceListRecur([co])
+		util.saveChanges(cmd, co)
+	}
+
+	static async rename(args:string[], ..._cmd: [{name:string}, Command]) {
+		const [optional, cmd] = _cmd
+		const co = await util.getOptCollection(cmd)
+
+		const item = util.findRecurse(co, args)
+		if (util._.isError(item)) {
+			util.logger.error(item.message)
+			return
+		}
+		item.name = optional.name
+		util.showResourceListRecur([item?.parent() || co])
 		util.saveChanges(cmd, co)
 	}
 }

@@ -30,11 +30,10 @@ export const ex = (o, compact = false) => {
 	return result
 }
 
-
 export function benchSync(cb) {
 	const d = performance.now()
 	cb()
-	return performance.now()-d
+	return performance.now() - d
 }
 
 /**
@@ -59,19 +58,14 @@ export function findRecurse(parent, args: string[]): PcliResource | Error {
 	/** Additionally increments currDepth. */
 	const isLast = () => ++currDepth === maxDepth
 	let tmp
-	const founditems:any = []
+	const founditems: any = []
 
 	while (currDepth < maxDepth) {
 		const name = nextName()
 		tmp = findNext(name, nextIterResource)
 		if (!tmp) {
-			let msg = ''
-			if (isFolder(nextIterResource)) 
-				msg = `"${name}" not found inside "${nextIterResource.name}".`
-			else {
-				const resname = founditems.at(-1).name
-				msg = `"${name}" not found inside "${resname}".`
-			}
+			const resname = founditems.at(-1)?.name || parent.name
+			const msg = `"${name}" not found inside "${resname}".`
 			return Error(msg)
 		}
 
@@ -90,7 +84,6 @@ export function findRecurse(parent, args: string[]): PcliResource | Error {
 			// NOTE nothing can go beyond a response! Stop!
 			return tmp
 		} else return Error(`Found unknown instance "${name}".`)
-
 	}
 	return nextIterResource
 }
@@ -164,15 +157,14 @@ export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 export function getResourceIcon(value) {
 	let text = ''
-	let color=chalk.bold
-	if (isColl(value)) 
-		text = 'C'
+	let color = chalk.bold
+	if (isColl(value)) text = 'C'
 	else if (isFolder(value)) text = 'F'
 	else if (isItem(value)) text = 'R'
 	else if (isResp(value)) text = 'E'
 	else text = '?'
 
-	return color(' '+text+' ' )
+	return color(' ' + text + ' ')
 }
 
 export function showList(names) {
@@ -292,7 +284,7 @@ export function getItemParent(arr, parentid) {
  * Moves item/resource under parent.
  * Checks for renames.
  */
-export function setParent(collection:psdk.Collection, newParent, item) {
+export function setParent(collection: psdk.Collection, newParent, item) {
 	const oldParent = item.parent()
 
 	let refAdd, refRemove
@@ -343,7 +335,7 @@ export function traverseRecursively(
 	let { currDepth = 0, d: maxDepth } = options
 	maxDepth = Number(maxDepth)
 	maxDepth = Number.isNaN(maxDepth) ? 100 : maxDepth
-	maxDepth+=1 // otherwise thing break down at UI
+	maxDepth += 1 // otherwise thing break down at UI
 	let nextArr: any[] = []
 
 	for (const item of recursivableArr) {
@@ -362,8 +354,7 @@ export function traverseRecursively(
 				currDepth++
 				isdepthinc = true
 			} else nextArr = item // item isn't an array, sorry!
-		}
-		else break
+		} else break
 		const cbresult = cb({ item, nextArr, currDepth, currArr: recursivableArr })
 		if (cbresult === traverseConsts.NO_MORE) {
 			if (!options.result) options.result = []
@@ -443,9 +434,9 @@ export async function getOptCollection(cmd) {
 }
 
 export function getResponsecodeIcon(code, text) {
-	return code + ' '+text
+	return code + ' ' + text
 }
-export function getRequestmethodIcon(method:string) {
+export function getRequestmethodIcon(method: string) {
 	return method
 }
 

@@ -55,12 +55,14 @@ export default class {
 		args = args.map(e => e.toLowerCase())
 		const co = await util.getOptCollection(cmd)
 		let initialparent:any = [co]
+
 		if (args.length) {
-			initialparent = util.findRecurse(co, args)
+			const res = util.findRecurse(co, args)
 			if (util._.isError(initialparent)) {
 				util.logger.error(initialparent.message)
 				return
 			}
+			initialparent = [res]
 		}
 		
 		util.showResourceListRecur(initialparent, {d:optional.d})

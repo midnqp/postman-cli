@@ -343,6 +343,7 @@ export function traverseRecursively(
 	let { currDepth = 0, d: maxDepth } = options
 	maxDepth = Number(maxDepth)
 	maxDepth = Number.isNaN(maxDepth) ? 100 : maxDepth
+	maxDepth+=1 // otherwise thing break down at UI
 	let nextArr: any[] = []
 
 	for (const item of recursivableArr) {
@@ -362,6 +363,7 @@ export function traverseRecursively(
 				isdepthinc = true
 			} else nextArr = item // item isn't an array, sorry!
 		}
+		else break
 		const cbresult = cb({ item, nextArr, currDepth, currArr: recursivableArr })
 		if (cbresult === traverseConsts.NO_MORE) {
 			if (!options.result) options.result = []
@@ -370,7 +372,7 @@ export function traverseRecursively(
 		} else if (cbresult === traverseConsts.EXIT) {
 			// optimizations!! ;)
 			nextArr = []
-			currDepth = maxDepth
+			return
 		}
 		if (isdepthinc) {
 			const result = traverseRecursively(nextArr, cb, { ...options, currDepth })

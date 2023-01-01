@@ -12,13 +12,6 @@ program
 	.option('-h, --headers <string>', 'header for all requests')
 	.option('-v, --variables <string>', 'variable for all requests')
 program
-	.command('add')
-	.description('adds a new resource')
-	//.option('-t <type>', 'type of resource, one of: folder, request, example [request]')
-	.option('--parent <resources...>',  'parent of new resource')
-	// TODO: take interactive prompts of input for this command
-	// prompts: type, name, then... different fields based on `type`
-program
 	.command('show <resources...>')
 	.description('show details of a resource')
 	.option('--res', 'include example response body')
@@ -30,7 +23,7 @@ program
 program
 	.command('list [resources...]')
 	.description('list resources recursively')
-	.option('-d [number]', 'set max recursion depth [0]')
+	.option('-d [number]', 'set max recursion depth', 'Infinity')
 	.action(Cmd.list)
 program
 	.command('run <resources...>')
@@ -40,23 +33,30 @@ program
 	.action(Cmd.run)
 program
 	.command('move')
-	.option('--from <resources...>')
-	.option('--to <resources...>')
+	.requiredOption('--from <resources...>')
+	.requiredOption('--to <resources...>')
 	.description('move a resource under another parent')
 	.action(Cmd.move)
-program.command('quickrun [resources...]').description('edit and run a request, without saving changes')
-program.command('rename <newname> <resources...>')
+program
+	.command('add')
+	.description('adds a new resource')
+	.requiredOption('-t <type>', 'type of resource, one of: folder, request, example')
+	.requiredOption('--name <string>', 'name of resource')
+	.requiredOption('--parent <resources...>',  'parent of new resource')
+	// TODO: take interactive prompts of input for this command
+	// prompts: type, name, then... different fields based on `type`
+program.command('rename <resources...>').requiredOption('--name <string>', 'new name of resource')
 program.command('delete <resources...>')
 program.command('reorder <resources...>').option('--index [number]', '1-based index')
+program.command('quickrun [resources...]').description('edit and run a request, without saving changes')
 program.command('simple').description('run any simple request')
 .option('--url <string>')
 .option('--method <string>').option('--data [string]').option('--headers [string]', 'headers as a json string')
 program.command('update <resources...>')
-program.command('workspace').description('manage workspaces')
 program.command('env').description('manage environment variables')// represented as a big json
 program
 	.command('search <resources...>')
 	.description('searches by name of resource')
-	.option('-t <type>', 'type of resource, one of: folder, request, example [request]')
+	.option('-t <type>', 'type of resource, one of: folder, request, example', 'request')
 
 program.parse()

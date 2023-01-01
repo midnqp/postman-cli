@@ -1,16 +1,12 @@
 import fs from 'fs/promises'
 import psdk from 'postman-collection'
 import * as util from './util.js'
-import axios, { AxiosPromise, AxiosRequestConfig } from 'axios'
 import enquirer from 'enquirer'
-import stripAnsi from 'strip-ansi'
-import env from './env.js'
-import chalk from 'chalk'
 import tmp from 'tmp'
 import { getEditorInfo } from 'open-editor'
-import { execFile, execFileSync, spawnSync } from 'child_process'
-import { inspect, promisify } from 'util'
+import { execFile, spawnSync } from 'child_process'
 import newman from 'newman'
+import {Command, ExecutableCommandOptions, Option} from 'commander'
 
 /**
  * @throws Error
@@ -87,14 +83,7 @@ export default class {
 			execs.forEach(exec => {
 				// @ts-ignore
 				const { response, request, item:_item, id } = exec
-				//console.log(exec)
 				const item = _item as any
-				//const outResponse = util.showDetails(response)
-				//if (util._.isError(outResponse)) {
-					//util.logger.error(outResponse.message)
-					//return
-				//}
-				//util.logger.out(outResponse)
 				const outRequest = util.showDetails(item)
 				if (util._.isError(outRequest)) {
 					util.logger.error(outRequest.message)
@@ -110,72 +99,21 @@ export default class {
 		}
 	}
 
-	/*
-	static async run(args: string[], ..._cmd) {
-		const [optional, cmd] = _cmd
-		args = args.map(e => e.toLowerCase())
-		const variables = util.getVariables(cmd)
-		const co = await util.getCollection(cmd)
-		co.syncVariablesFrom(variables)
+	// pcli move --from resources... --to resources...
+	// notice that `pcli move` isn't variadic.
+	// it has options, which are variadic.
+	static async move (args:{from:string[], to:string[]}, cmd) {
+		const {parent, options}:{parent:Command, options:Option[]} = cmd
+		const co = await util.getOptCollection(cmd)
 
-		const resource = util.findRecurse(co, args)
-		if (util._.isError(resource)) {
-			util.logger.error(resource.message)
-			return
-		}
-		let req: psdk.Request
-		const errMsg = 'expected either request, or example.'
-		if (util.isItem(resource)) req = resource.request
-		else if (util.isResp(resource)) {
-			const _req = resource.originalRequest
-			if (!_req) {
-				util.logger.error(errMsg)
-				return
-			}
-			req = _req
-		} else {
-			util.logger.error(errMsg)
-			return
-		}
-
-		let url = req.url.toString()
-		url = co.variables.replace(url)
-		let result: Awaited<AxiosPromise> | undefined
-		const headers: Record<string, string> = req.headers.toObject()
-		for (const [k, v] of Object.entries(headers)) headers[k] = co.variables.replace(v)
-
-		const reqConfig: AxiosRequestConfig = {
-			headers,
-			method: req.method,
-			data: JSON.parse(req.body?.raw || '{}'),
-			params: req.url.variables.toObject(),
-			url,
-		}
-		try {
-			if (optional.r)
-				util.logger.out(
-					util.ex({
-						headers: reqConfig.headers,
-						body: reqConfig.data,
-						params: reqConfig.params,
-					})
-				)
-			result = await axios(reqConfig)
-		} catch (err) {
-			util.logger.error(util.ex(util.parseAxiosError(err)))
-			return
-		}
-		if (optional.s) {
-			// response meta: bytes, time, etc
-		}
-		util.logger.out(util.ex(result.data))
+		//const resSource = util.getResourceFromArgs(co, args.from)
+		const resSource = util.getResourceFromArgsSWF([co], args.from)
+		const resTarget = util.getResourceFromArgs(co, args.to)
 	}
-	*/
 
 	/**
 	 * @todo rearrange by index under same parent
-	 */
-	static async listEdit(args: string[], ..._cmd) {
+	static async move(args: string[], ..._cmd) {
 		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
 		const co = await util.getOptCollection(cmd)
@@ -191,7 +129,7 @@ export default class {
 			return
 		}
 
-		/** For JSON file-edit by user. */
+		// For JSON file-edit by user. 
 		const names: any = []
 		listRecurEdit([resource], args, names, optional)
 
@@ -211,7 +149,7 @@ export default class {
 
 		let hasChanges = false
 		const opsResult: any[] = []
-		/** From the user-edited JSON. */
+		// From the user-edited JSON. 
 		const cbOps = ({ item }) => {
 			const _co = util.deepFind([co], item.id)
 			if (util.isColl(_co)) return
@@ -232,7 +170,7 @@ export default class {
 
 		// persist changes
 		if (hasChanges) util.saveChanges(cmd, co)
-	}
+	}*/
 }
 
 function listRecurEdit(parent, args, names, optArgs, currDepth = 0) {

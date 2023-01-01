@@ -1,5 +1,4 @@
 import winston from 'winston'
-import {ex} from './util.js'
 const {
 	loggers,
 	transports: { Console },
@@ -15,30 +14,30 @@ const logFormat = [
 ]
 loggers.add('error', {
 	levels: { error: 0 },
-	transports: [ new Console({ level: 'error' }) ],
+	transports: [new Console({ level: 'error' })],
 	format: combine(colorize({ colors: { error: 'red' } }), ...logFormat),
 })
 
 loggers.add('out', {
-	levels: {out: 1},
-	transports: [ new Console({ level: 'out' }) ],
-	format: combine(...logFormat)
+	levels: { out: 1 },
+	transports: [new Console({ level: 'out' })],
+	format: combine(...logFormat),
 })
 
 loggers.add('warn', {
-	levels: {warn: 1},
-	transports: [ new Console({ level: 'warn' }) ],
-	format: combine(colorize({level:true, colors: { warn: 'yellow' } }), ...logFormat)
+	levels: { warn: 1 },
+	transports: [new Console({ level: 'warn' })],
+	format: combine(colorize({ level: true, colors: { warn: 'yellow' } }), ...logFormat),
 })
 
-type LoggerFunc = (msg:string) => winston.Logger
+type LoggerFunc = (msg: string) => winston.Logger
 type Logger = {
 	error: LoggerFunc
 	out: LoggerFunc
 	warn: LoggerFunc
 }
 
-export const logger= {
+export const logger = {
 	error: msg => loggers.get('error').log('error', msg),
 	out: msg => loggers.get('out').log('out', msg),
 	warn: msg => loggers.get('warn').log('warn', msg),

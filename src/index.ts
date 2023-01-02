@@ -37,15 +37,17 @@ program
 	.requiredOption('--to <resources...>')
 	.description('move a resource under another parent')
 	.action(Cmd.move)
-program.command('rename <resources...>').requiredOption('--name <string>', 'new name of resource').action(Cmd.rename)
-program.command('delete <resources...>').action(Cmd.delete)
-program.command('reorder <resources...>').requiredOption('--index <number>', 'new 1-based index').action(Cmd.reorder)
+program.command('rename <resources...>').description('rename a resource') .requiredOption('--name <string>', 'new name of resource').action(Cmd.rename)
+program.command('delete <resources...>').description('remove a resource').action(Cmd.delete)
+program.command('reorder <resources...>').description('reorder a resource under the same parent').requiredOption('--index <number>', 'new 1-based index').action(Cmd.reorder)
 program
 	.command('add')
 	.description('adds a new resource')
 	.requiredOption('-t <type>', 'type of resource, one of: folder, request, example')
 	.requiredOption('--name <string>', 'name of resource')
 	.requiredOption('--parent <resources...>', 'parent of new resource')
+	.option('--index [number]', '1-based index')
+	.action(Cmd.add)
 // TODO: take interactive prompts of input for this command
 // prompts: type, name, then... different fields based on `type`
 program.command('quickrun [resources...]').description('edit and run a request, without saving changes')

@@ -45,24 +45,29 @@ export function benchSync(cb) {
  * @kind util
  */
 export function findRecurse(parent, args: string[]): PcliResource | Error {
-	/** Finds next resource.  */
-	const findNext = (name: string, parentIter) => {
-		if (!parentIter.find) return // commentable?? TODO
-		return parentIter.find(rule => rule.name.toLowerCase() === name, {})
+	if (args[0] == parent.name) {
+		const children = getChildren(parent)
+		const found = children.find(child => child.name.toLowerCase() == parent.name.toLowerCase())
+		if (!found && args.length == 1) return parent // it refers to parent itself, and only item
+		if (!found) args.splice(0, 1) // probably it refers to the parent itself
 	}
 
-	let nextIterResource = parent.items
+	let nextiter = parent.items
 	let currDepth = 0
 	const maxDepth = args.length
+	const getNext = (name: string, parentIter) => {
+		if (!parentIter.find) return // commentable?? TODO
+		return parentIter.find(child => child.name.toLowerCase() === name, {})
+	}
 	const nextName = () => args[currDepth]
-	/** Additionally increments currDepth. */
+	// additionally increments currDepth
 	const isLast = () => ++currDepth === maxDepth
 	let tmp
 	const founditems: any = []
 
 	while (currDepth < maxDepth) {
 		const name = nextName()
-		tmp = findNext(name, nextIterResource)
+		tmp = getNext(name, nextiter)
 		if (!tmp) {
 			const resname = founditems.at(-1)?.name || parent.name
 			const msg = `"${name}" not found inside "${resname}".`
@@ -72,11 +77,11 @@ export function findRecurse(parent, args: string[]): PcliResource | Error {
 		if (isFolder(tmp)) {
 			if (isLast()) return tmp
 			founditems.push(tmp)
-			nextIterResource = tmp.items
+			nextiter = tmp.items
 		} else if (isItem(tmp)) {
 			if (isLast()) return tmp
 			founditems.push(tmp)
-			nextIterResource = (tmp.responses as any).members
+			nextiter = (tmp.responses as any).members
 		} else if (isResp(tmp)) {
 			founditems.push(tmp)
 			//if (isLast()) return tmp
@@ -85,7 +90,7 @@ export function findRecurse(parent, args: string[]): PcliResource | Error {
 			return tmp
 		} else return Error(`Found unknown instance "${name}".`)
 	}
-	return nextIterResource
+	return nextiter
 }
 
 export function isIterable(value) {
@@ -349,7 +354,7 @@ export function traverseRecursively(
 				nextArr = item.responses.all()
 				currDepth++
 				isdepthinc = true
-			} else if (!isPostmanEntity(item) && Array.isArray(item.items)) {
+			} else if (!isPostmanEntity(item) && Array.isArray(item?.items)) {
 				nextArr = item.items
 				currDepth++
 				isdepthinc = true

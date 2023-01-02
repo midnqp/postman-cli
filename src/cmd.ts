@@ -1,9 +1,11 @@
-import * as psdk from 'postman-collection'
+import psdk from 'postman-collection'
 import * as util from './util.js'
 import newman from 'newman'
 import { Command, Option } from 'commander'
+import enquirer from 'enquirer'
 
 /**
+ * Promisified `newman.run`.
  * @throws Error
  */
 function newmanRun(options: newman.NewmanRunOptions): Promise<newman.NewmanRunSummary> {
@@ -16,6 +18,53 @@ function newmanRun(options: newman.NewmanRunOptions): Promise<newman.NewmanRunSu
 }
 
 export default class {
+	static async add(args: { index?: string; name: string; t: string; parent: string[] }, cmd) {
+		const co = await util.getOptCollection(cmd)
+		let argIndex = -1
+		if (args.index) argIndex = parseInt(args.index)
+
+		const validtypes = ['folder', 'request', 'example']
+		if (!validtypes.includes(args.t)) {
+			util.logger.error('resource type needs to be one of: ' + validtypes.join(', ').toString())
+			return
+		}
+
+		const resParent = util.findRecurse(co, args.parent)
+		if (util._.isError(resParent)) {
+			util.logger.error(resParent.message)
+			return
+		}
+
+		if (args.t == 'folder') {
+			const children = util.getChildren(resParent, false)
+			const folder = new psdk.ItemGroup({ name: args.name, item: [] })
+			children.add(folder)
+			if (argIndex != -1) util.arrayMove(children.members, children.indexOf(folder.id), argIndex - 1)
+		} else if (args.t == 'request') {
+			const input = await enquirer.prompt({
+				type: 'form',
+				name: 'requestFields',
+				message: 'specify request',
+				choices: [
+					{ name: 'method', initial: 'GET' },
+					{ name: 'url', initial: '{{server}}'},
+					{ name: 'type', message:'type', initial: 'json' },
+					{ name: 'headers', initial: '{}' },
+					{ name: 'query', initial: '{}' },
+					{
+						name: 'pathvar',
+						message: 'path variables',
+						initial: '{}',
+					},
+					{ name: 'body', initial: '{}' },
+				],
+			})
+			console.log(input)
+		}
+
+		util.showResourceListRecur([resParent])
+	}
+
 	static async reorder(args: string[], ..._cmd) {
 		const [optional, cmd] = _cmd
 		const co = await util.getOptCollection(cmd)

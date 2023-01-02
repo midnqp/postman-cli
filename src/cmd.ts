@@ -28,27 +28,19 @@ export default class {
 
 		const parent = resource.parent()
 		const children: psdk.PropertyList<any> = util.getChildren(parent, false)
-		const rawChildren = children.all()
-		const length = rawChildren.length
-		const firstone = rawChildren[0]
-		const lastone = rawChildren[length - 1]
-	
-		// check if reuesting reorder into the same index
-		const notsamepos = idx => resource.id !== rawChildren[idx].id
+		const length = children.count()
+		optIndex = optIndex - 1 // it was 1-based index
+		if (optIndex >= length - 1) optIndex = length - 1
+		else if (optIndex <= 0) optIndex = 0
 
 		if (length > 1) {
-			optIndex = optIndex - 1 // it was 1-based index
-			if (optIndex >= length) {
-				notsamepos(length - 1) && children.insert(resource, undefined)
-			} else if (optIndex <= 0) notsamepos(0) && children.insert(resource, firstone.id)
-			else {
-				notsamepos(optIndex) && children.insertAfter(resource, rawChildren[optIndex - 1].id)
-			}
+			// @ts-ignore
+			util.arrayMove(children.members, children.indexOf(resource.id), optIndex)
+			await util.saveChanges(cmd, co)
 		}
-
 		util.showResourceListRecur([parent])
-		util.saveChanges(cmd, co)
 	}
+
 	/**
 	 * Show request body, query, path variables,
 	 * headers, and few details.

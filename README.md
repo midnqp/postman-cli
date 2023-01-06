@@ -21,7 +21,7 @@
 
 Postman is a wondrous tool for backend developers. A friend. A single point of truth. Something that stays open alongside our code editor. However, using a graphical interface in a fast-moving work environment may not be productive. Most of us enjoy the most productivity with our keyboard, at our Terminal. So, why not bring Postman as a commandline interface? The project is pretty much in pre-release stage. Ideas/feedbacks are welcome!
 
-Download for [Linux](https://github.com/MidnQP/postman-cli/releases/download/0.0.1/postman-cli-linux.bin), [Mac](https://github.com/MidnQP/postman-cli/releases/download/0.0.1/postman-cli-macos.tar.gz), or [Windows](https://github.com/MidnQP/postman-cli/releases/download/0.0.1/postman-cli-windows.exe) - and get started right away!
+Download for [Linux](https://github.com/MidnQP/postman-cli/releases/download/0.0.2/postman-cli-linux.bin), [Mac](https://github.com/MidnQP/postman-cli/releases/download/0.0.2/postman-cli-macos.tar.gz), or [Windows](https://github.com/MidnQP/postman-cli/releases/download/0.0.2/postman-cli-windows.exe) - and get started right away!
 
 
 ## CLI Options 

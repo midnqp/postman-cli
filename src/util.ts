@@ -12,21 +12,34 @@ export * from './view.js'
 
 export type PcliResource = psdk.Item | psdk.ItemGroup<any> | psdk.Response
 
+export function toJsonString(input:string) {
+   const keyMatcher = '([^",{}\\s]+?)';
+   const valMatcher = '(.,*)';
+   const matcher = new RegExp(`${keyMatcher}\\s*:\\s*${valMatcher}`, 'g');
+   const parser = (match, key, value) => `"${key}":${value}`
+   return input.replace(matcher, parser);
+}
+
 /**
  * Pretty-prints an object recursively.
  * @kind util
  */
-export const ex = (o, compact = false) => {
-	const result = inspect(o, {
+export const ex = (o, compact:any=false) => {
+
+	let _compact = false
+	if (_.isBoolean(compact)) _compact=compact
+	const opts = {
 		indentationLvl: 2,
 		colors: true,
 		depth: 5,
 		showHidden: false,
-		compact,
+		compact:_compact,
 		maxArrayLength: 4,
 		maxStringLength: 16,
+		...(_.isPlainObject(compact) && compact),
 		//sorted: true,
-	})
+	}
+	const result = inspect(o, opts)
 	return result
 }
 
@@ -160,13 +173,13 @@ export function listRecurse(
 
 export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-export function getResourceIcon(value) {
+export function getResourceIcon(resource) {
 	let text = ''
 	let color = chalk.bold
-	if (isColl(value)) text = 'C'
-	else if (isFolder(value)) text = 'F'
-	else if (isItem(value)) text = 'R'
-	else if (isResp(value)) text = 'E'
+	if (isColl(resource)) text = 'C'
+	else if (isFolder(resource)) text = 'F'
+	else if (isItem(resource)) text = 'R'
+	else if (isResp(resource)) text = 'E'
 	else text = '?'
 
 	return color(' ' + text + ' ')
@@ -390,6 +403,12 @@ export function getResourceByName(recursivableArr, name) {
 	return traverseRecursively(recursivableArr, ({ item }) => item.name == name)
 }
 
+export function getResourceById(arr, id) {
+	return traverseRecursively(arr, data => {
+		console.log(data.item.id)
+		data.item.id == id})
+}
+
 /**
  * @param args nested resources
  * e.g. folder2 folder1 request4 example1
@@ -422,10 +441,10 @@ export function getOptVariables(cmd) {
 export async function getOptCollection(cmd) {
 	const filepath = cmd.parent.opts().collection || env.collectionFilepath
 	const foundFile = await fileExists(filepath)
-	const collJson = await fs.readFile(filepath, 'utf8')
+
 	let _co: any = {}
 
-	if (filepath && foundFile) _co = JSON.parse(collJson)
+	if (filepath && foundFile) _co = JSON.parse(await fs.readFile(filepath, 'utf8'))
 	else if (!filepath && env.apiKey && env.collectionUrl) {
 		const { data } = await axios.get(env.collectionUrl, {
 			headers: { 'X-API-Key': env.apiKey },

@@ -24,7 +24,7 @@ export function isResourceDetails(r): r is ResourceDetails {
  */
 export function showDetails(
 	resource: psdk.Request | psdk.Item | psdk.Response | ResourceDetails,
-	ignore = ['url', 'headers']
+	ignore:any = ['url', 'headers']
 ) {
 	let name = ''
 	let details: ResourceDetails
@@ -45,10 +45,21 @@ export function showDetails(
 }
 
 // showFormattedObject(details, options: {ignorekeys: [], compactkeys:[]})
-function showFormattedObject(details, ignore) {
+function showFormattedObject(details, options:Array<string>|any) {
 	const filteredDetails: any = {}
 	const toCompactKeys = ['body', 'params', 'query']
 	let isCompact = true
+	let ignore:string[] = []
+	let expandOptions= {} as any
+
+	if (_.isPlainObject(options)) {
+		const {ignore:_ignore, ..._expandOptions} = options
+		expandOptions = _expandOptions
+	}
+	else {
+		ignore = options
+	}
+
 	Object.entries(details).forEach(([k, v]) => {
 		if (ignore.includes(k)) return
 
@@ -58,7 +69,7 @@ function showFormattedObject(details, ignore) {
 		const _v = util.ex(v)
 		if (_v.length > 2) filteredDetails[k] = v
 	})
-	return util.ex(filteredDetails, isCompact)
+	return util.ex(filteredDetails, {compact:isCompact, ...expandOptions})
 }
 
 /** Gets details from Postman requests and examples. */
@@ -109,8 +120,9 @@ export function getDetailsFromResponse(r: psdk.Response) {
 	return { _parsed, size: r.responseSize, time: r.responseTime, code: r.code, status: r.status, body, headers }
 }
 
-export function showDetailsFromResponse(r: psdk.Response) {
+export function showDetailsFromResponse(r: psdk.Response, options:any=['_parsed', 'code', 'status']) {
 	const details = getDetailsFromResponse(r)
+
 	let result = '\n' + chalk.underline.bold('response')
 
 	let color = chalk.black
@@ -128,7 +140,7 @@ export function showDetailsFromResponse(r: psdk.Response) {
 	}
 	result += ' ' + color(details.code + ' ' + details.status) + '\n'
 
-	result += showFormattedObject(details, ['_parsed', 'code', 'status'])
+	result += showFormattedObject(details, options)
 	return result
 }
 

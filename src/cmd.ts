@@ -1,8 +1,9 @@
 import psdk from 'postman-collection'
 import * as util from './util.js'
 import newman from 'newman'
-import { Command, Option } from 'commander'
+import * as commander from 'commander'
 import enquirer from 'enquirer'
+import { PcliOpts } from './index.js'
 
 /**
  * Promisified `newman.run`.
@@ -18,14 +19,15 @@ function newmanRun(options: newman.NewmanRunOptions): Promise<newman.NewmanRunSu
 }
 
 export default class {
-	static async add(args: { index?: string; name: string; t: string; parent: string[] }, cmd) {
+	static async add(args: PcliOpts.CmdAddOpts, cmd: commander.Command) {
 		const co = await util.getOptCollection(cmd)
-		let argIndex = -1
-		if (args.index) argIndex = parseInt(args.index)
+		let argsIdx = -1
+		if (args.index) argsIdx = parseInt(args.index)
 
 		const validtypes = ['folder', 'request', 'example']
 		if (!validtypes.includes(args.t)) {
-			util.logger.error('resource type needs to be one of: ' + validtypes.join(', ').toString())
+			const validstr = validtypes.join(', ').toString()
+			util.logger.error('resource type needs to be one of: ' + validstr)
 			return
 		}
 
@@ -36,19 +38,19 @@ export default class {
 		}
 
 		if (args.t == 'folder') {
-			const children = util.getChildren(resParent, false)
+			const ch = util.getChildren(resParent, false)
 			const folder = new psdk.ItemGroup({ name: args.name, item: [] })
-			children.add(folder)
-			if (argIndex != -1) util.arrayMove(children.members, children.indexOf(folder.id), argIndex - 1)
+			ch.add(folder)
+			if (argsIdx != -1) util.arrayMove(ch.members, ch.indexOf(folder.id), argsIdx - 1)
 		} else if (args.t == 'request') {
-			const input = await enquirer.prompt({
+			const input: PcliOpts.CmdAddRequestInput = await enquirer.prompt({
 				type: 'form',
 				name: 'requestFields',
 				message: 'specify request',
 				choices: [
-					{ name: 'method', initial: 'GET' },
-					{ name: 'url', initial: '{{server}}'},
-					{ name: 'type', message:'type', initial: 'json' },
+					{ name: 'method', initial: 'get' },
+					{ name: 'url', initial: '{{server}}' },
+					{ name: 'type', message: 'type', initial: 'json' },
 					{ name: 'headers', initial: '{}' },
 					{ name: 'query', initial: '{}' },
 					{
@@ -59,13 +61,13 @@ export default class {
 					{ name: 'body', initial: '{}' },
 				],
 			})
-			console.log(input)
+			console.log(input, util.toJsonString(input.body))
 		}
 
 		util.showResourceListRecur([resParent])
 	}
 
-	static async reorder(args: string[], ..._cmd) {
+	static async reorder(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdReorderOpts, commander.Command]) {
 		const [optional, cmd] = _cmd
 		const co = await util.getOptCollection(cmd)
 		const resource = util.findRecurse(co, args)
@@ -73,18 +75,18 @@ export default class {
 			util.logger.error(resource.message)
 			return
 		}
-		let optIndex = Number(optional.index)
+		let optsIdx = parseInt(optional.index)
 
 		const parent = resource.parent()
 		const children: psdk.PropertyList<any> = util.getChildren(parent, false)
 		const length = children.count()
-		optIndex = optIndex - 1 // it was 1-based index
-		if (optIndex >= length - 1) optIndex = length - 1
-		else if (optIndex <= 0) optIndex = 0
+		optsIdx = optsIdx - 1 // it was 1-based index
+		if (optsIdx >= length - 1) optsIdx = length - 1
+		else if (optsIdx <= 0) optsIdx = 0
 
 		if (length > 1) {
 			// @ts-ignore
-			util.arrayMove(children.members, children.indexOf(resource.id), optIndex)
+			util.arrayMove(children.members, children.indexOf(resource.id), optsIdx)
 			await util.saveChanges(cmd, co)
 		}
 		util.showResourceListRecur([parent])
@@ -97,8 +99,8 @@ export default class {
 	 * @todo requests having examples
 	 * @kind command
 	 */
-	static async show(args: string[], ...cmd) {
-		cmd = cmd[1]
+	static async show(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdShowOpts, commander.Command]) {
+		const cmd = _cmd[1]
 		args = args.map(e => e.toLowerCase())
 		const co = await util.getOptCollection(cmd)
 
@@ -119,7 +121,7 @@ export default class {
 		})
 	}
 
-	static async list(args: string[], ..._cmd) {
+	static async list(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdListOpts, commander.Command]) {
 		const [optional, cmd] = _cmd
 		args = args.map(e => e.toLowerCase())
 		const co = await util.getOptCollection(cmd)
@@ -137,20 +139,54 @@ export default class {
 		util.showResourceListRecur(initialparent, { d: optional.d })
 	}
 
-	static async run(args: string[], ..._cmd) {
+	static async run(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdListOpts, commander.Command]) {
 		const [optional, cmd] = _cmd
 		const variables = util.getOptVariables(cmd)
 		const co = await util.getOptCollection(cmd)
 		co.syncVariablesFrom(variables)
 
-		const resource = util.getResourceFromArgs(co, args)
+		const resource = util.findRecurse(co, args)
+		if (util._.isError(resource)) {
+			util.logger.error(resource.message)
+			return
+		}
+		let runnable: any = resource
+		let restoreOrigReq: any = {
+			changed: false,
+			req: undefined,
+			prevreqdata: undefined,
+		}
+
+		if (util.isResp(resource)) {
+			const tmp = resource.parent()
+			if (tmp) {
+				let item = tmp as psdk.Item
+				const exampledata = resource?.originalRequest?.body?.raw || ''
+
+				let prevreqdata
+				if (item?.request?.body?.raw) {
+					prevreqdata = item.request.body.raw
+					item.request.body.raw = exampledata
+				}
+				runnable = item
+
+				restoreOrigReq.changed = true
+				restoreOrigReq.req = item?.request?.body
+				restoreOrigReq.prevreqdata = prevreqdata
+			}
+		}
+
 		try {
-			const summ = await newmanRun({ collection: co, folder: resource.id })
+			const summ = await newmanRun({ collection: co, folder: runnable.id })
 			const execs = summ.run.executions
+			const fails = summ.run.failures
+
 			execs.forEach(exec => {
 				// @ts-ignore
 				const { response, item: _item } = exec
 				const item = _item as any
+				if (!item || !response) return
+
 				const outRequest = util.showDetails(item)
 				if (util._.isError(outRequest)) {
 					util.logger.error(outRequest.message)
@@ -158,19 +194,36 @@ export default class {
 				}
 				util.logger.out(outRequest)
 
-				const outResponse = util.showDetailsFromResponse(response)
+				const outResponse = util.showDetailsFromResponse(response, {
+					compact: false,
+					maxStringLength: undefined,
+				})
 				util.logger.out(outResponse)
 			})
+
+			fails.forEach(fail => {
+				// @ts-ignore
+				const resource = fail.source as any
+				if (!resource) return
+				util.logger.error(fail.error.message)
+				const details = util.showDetails(resource, { compact: false })
+				if (util._.isError(details)) {
+					util.logger.error(details.message)
+					return
+				}
+				util.logger.error(details)
+			})
 		} catch (err: any) {
-			util.logger.error(err.toString())
+			util.logger.error(err.message)
 		}
+
+		if (restoreOrigReq.changed) restoreOrigReq.req.raw = restoreOrigReq.prevreqdata
 	}
 
 	// pcli move --from resources... --to resources...
 	// notice that `pcli move` isn't variadic.
 	// it has options, which are variadic.
-	static async move(args: { from: string[]; to: string[] }, cmd) {
-		const { parent, options }: { parent: Command; options: Option[] } = cmd
+	static async move(args: PcliOpts.CmdMoveOpts, cmd: commander.Command) {
 		const co = await util.getOptCollection(cmd)
 
 		const resourceFrom = util.findRecurse(co, args.from)
@@ -193,7 +246,7 @@ export default class {
 		util.saveChanges(cmd, co)
 	}
 
-	static async rename(args: string[], ..._cmd: [{ name: string }, Command]) {
+	static async rename(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdRenameOpts, commander.Command]) {
 		const [optional, cmd] = _cmd
 		const co = await util.getOptCollection(cmd)
 
@@ -207,7 +260,7 @@ export default class {
 		util.saveChanges(cmd, co)
 	}
 
-	static async delete(args: string[], ..._cmd) {
+	static async delete(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdDeleteOpts, commander.Command]) {
 		const [optional, cmd] = _cmd
 		const co = await util.getOptCollection(cmd)
 

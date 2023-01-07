@@ -4,12 +4,10 @@ import psdk from 'postman-collection'
 import * as util from './util.js'
 import { expect } from 'chai'
 import contentType from 'content-type'
+import {PcliResourceDetails, _resourcedetails_, PcliRequestable} from 'typings.js'
 
-const __any = {} as any
-const _resourcedetails_ = { headers: __any, params: __any, query: __any, body: __any, url: { path: '', method: '' } }
-type ResourceDetails = typeof _resourcedetails_
 
-export function isResourceDetails(r): r is ResourceDetails {
+export function isResourceDetails(r): r is PcliResourceDetails {
 	try {
 		expect(new Set([r])).to.have.deep.keys([_resourcedetails_])
 		return true
@@ -22,16 +20,13 @@ export function isResourceDetails(r): r is ResourceDetails {
  * Show an item/example formatted.
  * @kind util
  */
-export function showDetails(
-	resource: psdk.Request | psdk.Item | psdk.Response | ResourceDetails,
-	ignore:any = ['url', 'headers']
-) {
+export function showDetails(resource: PcliRequestable | PcliResourceDetails, ignore: any = ['url', 'headers']) {
 	let name = ''
-	let details: ResourceDetails
+	let details: PcliResourceDetails
 
 	if (isResourceDetails(resource)) details = resource
 	else {
-		let _details = getDetailsFromRequestOrExample(resource)
+		let _details = getReqDetails(resource)
 		if (_.isError(_details)) return _details
 		details = _details
 		name = resource.name
@@ -44,19 +39,19 @@ export function showDetails(
 	return result
 }
 
+
 // showFormattedObject(details, options: {ignorekeys: [], compactkeys:[]})
-function showFormattedObject(details, options:Array<string>|any) {
+function showFormattedObject(details, options: Array<string> | any) {
 	const filteredDetails: any = {}
 	const toCompactKeys = ['body', 'params', 'query']
 	let isCompact = true
-	let ignore:string[] = []
-	let expandOptions= {} as any
+	let ignore: string[] = []
+	let expandOptions = {} as any
 
 	if (_.isPlainObject(options)) {
-		const {ignore:_ignore, ..._expandOptions} = options
+		const { ignore: _ignore, ..._expandOptions } = options
 		expandOptions = _expandOptions
-	}
-	else {
+	} else {
 		ignore = options
 	}
 
@@ -69,23 +64,18 @@ function showFormattedObject(details, options:Array<string>|any) {
 		const _v = util.ex(v)
 		if (_v.length > 2) filteredDetails[k] = v
 	})
-	return util.ex(filteredDetails, {compact:isCompact, ...expandOptions})
+	return util.ex(filteredDetails, { compact: isCompact, ...expandOptions })
 }
 
 /** Gets details from Postman requests and examples. */
-export function getDetailsFromRequestOrExample(
-	resource: psdk.Request | psdk.Item | psdk.Response
-): Error | ResourceDetails {
+export function getReqDetails(resource: PcliRequestable): Error | PcliResourceDetails {
 	let req: psdk.Request | undefined
-	if (util.isResp(resource)) {
-		req = resource.originalRequest
-	} else if (util.isItem(resource)) {
-		req = resource.request
-	} else if (psdk.Request.isRequest(resource)) {
-		console.log('got a request')
-	} else req = resource
+	if (util.isResp(resource)) req = resource.originalRequest
+	else if (util.isItem(resource)) req = resource.request
+	else if (util.isReq(resource)) req = resource
 
-	if (!req) return Error(`not found request data on "${resource.name}"`)
+	const msg = `not found request data on "${resource.name}"`
+	if (!req) return Error(msg)
 
 	return {
 		params: req.url.variables.toObject(),
@@ -99,7 +89,7 @@ export function getDetailsFromRequestOrExample(
 	}
 }
 
-export function getDetailsFromResponse(r: psdk.Response) {
+export function getRespDetails(r: psdk.Response) {
 	const stream = r.stream
 	const headers = r.headers.toObject()
 
@@ -120,8 +110,8 @@ export function getDetailsFromResponse(r: psdk.Response) {
 	return { _parsed, size: r.responseSize, time: r.responseTime, code: r.code, status: r.status, body, headers }
 }
 
-export function showDetailsFromResponse(r: psdk.Response, options:any=['_parsed', 'code', 'status']) {
-	const details = getDetailsFromResponse(r)
+export function showRespDetails(r: psdk.Response, options: any = ['_parsed', 'code', 'status']) {
+	const details = getRespDetails(r)
 
 	let result = '\n' + chalk.underline.bold('response')
 
@@ -144,6 +134,7 @@ export function showDetailsFromResponse(r: psdk.Response, options:any=['_parsed'
 	return result
 }
 
+/** List resource tree using `travDeepFirst`. */
 export function showResourceListRecur(initialparent, options = {}) {
 	const cb = nextArgs => {
 		const { item } = nextArgs
@@ -154,5 +145,5 @@ export function showResourceListRecur(initialparent, options = {}) {
 		util.logger.out(out)
 	}
 
-	util.traverseRecursively(initialparent, cb, options)
+	util.travDeepFirst(initialparent, cb, options)
 }

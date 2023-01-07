@@ -1,5 +1,4 @@
-import { Command, Option } from 'commander'
-import { PcliResource } from 'util.js'
+import { Command } from 'commander'
 import Cmd from './cmd.js'
 
 /**
@@ -86,54 +85,3 @@ program
 
 program.parse()
 
-export namespace PcliOpts {
-	export type PcliResourceOr = 'request' | 'example' | 'folder'
-	export type CmdVariadicResources = string[]
-	/** `headers` and `variables` are json strings. */
-	export type ProgramOpts = {
-		collection: string
-		headers?: string
-		variables?: string
-	}
-	export type CmdShowOpts = {
-		res?: true
-		info?: true
-		nocompact?: true
-		hide?: string
-		hl?: string
-	}
-	export type CmdListOpts = { d: number }
-	export type CmdRunOpts = {
-		req?: true
-		info?: true
-	}
-	export type CmdMoveOpts = {
-		from: CmdVariadicResources
-		to: CmdVariadicResources
-	}
-	export type CmdRenameOpts = { name: string }
-	export type CmdDeleteOpts = { index: number }
-	export type CmdReorderOpts = {index:string}
-	export type CmdAddOpts = {
-		t: PcliResourceOr
-		name: string
-		parent: CmdVariadicResources
-		index?: string
-	}
-	export type CmdSimpleOpts = {
-		url?: string
-		method?: string
-		data?: string
-		headers?: string
-	}
-	export type CmdSearchOpts = { t: PcliResourceOr }
-	export type CmdAddRequestInput = {
-		body: string
-		method: 'get' | 'post' | 'put' | 'delete'
-		url: string
-		type: string
-		headers: string
-		query: string
-		pathvar: string
-	}
-}

@@ -3,7 +3,7 @@ import * as util from './util.js'
 import newman from 'newman'
 import * as commander from 'commander'
 import enquirer from 'enquirer'
-import { PcliOpts } from './index.js'
+import { PcliOpts, PcliResource } from './typings.js'
 
 /**
  * Promisified `newman.run`.
@@ -31,7 +31,7 @@ export default class {
 			return
 		}
 
-		const resParent = util.findRecurse(co, args.parent)
+		const resParent = util.getNestedResource(co, args.parent)
 		if (util._.isError(resParent)) {
 			util.logger.error(resParent.message)
 			return
@@ -70,7 +70,7 @@ export default class {
 	static async reorder(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdReorderOpts, commander.Command]) {
 		const [optional, cmd] = _cmd
 		const co = await util.getOptCollection(cmd)
-		const resource = util.findRecurse(co, args)
+		const resource = util.getNestedResource(co, args)
 		if (util._.isError(resource)) {
 			util.logger.error(resource.message)
 			return
@@ -105,7 +105,7 @@ export default class {
 		const co = await util.getOptCollection(cmd)
 
 		// resource
-		const resource = util.findRecurse(co, args)
+		const resource = util.getNestedResource(co, args)
 		if (util._.isError(resource)) {
 			util.logger.error(resource.message)
 			return
@@ -128,7 +128,7 @@ export default class {
 		let initialparent: any = [co]
 
 		if (args.length) {
-			const res = util.findRecurse(co, args)
+			const res = util.getNestedResource(co, args)
 			if (util._.isError(initialparent)) {
 				util.logger.error(initialparent.message)
 				return
@@ -145,7 +145,7 @@ export default class {
 		const co = await util.getOptCollection(cmd)
 		co.syncVariablesFrom(variables)
 
-		const resource = util.findRecurse(co, args)
+		const resource = util.getNestedResource(co, args)
 		if (util._.isError(resource)) {
 			util.logger.error(resource.message)
 			return
@@ -194,7 +194,7 @@ export default class {
 				}
 				util.logger.out(outRequest)
 
-				const outResponse = util.showDetailsFromResponse(response, {
+				const outResponse = util.showRespDetails(response, {
 					compact: false,
 					maxStringLength: undefined,
 				})
@@ -226,15 +226,15 @@ export default class {
 	static async move(args: PcliOpts.CmdMoveOpts, cmd: commander.Command) {
 		const co = await util.getOptCollection(cmd)
 
-		const resourceFrom = util.findRecurse(co, args.from)
+		const resourceFrom = util.getNestedResource(co, args.from)
 		if (util._.isError(resourceFrom)) {
 			util.logger.error(resourceFrom.message)
 			return
 		}
-		let resourceTo: util.PcliResource | psdk.Collection | Error
+		let resourceTo: PcliResource | psdk.Collection | Error
 		if (args.to.length == 1 && args.to[0] == 'collection') resourceTo = co
 		else {
-			resourceTo = util.findRecurse(co, args.to)
+			resourceTo = util.getNestedResource(co, args.to)
 			if (util._.isError(resourceTo)) {
 				util.logger.error(resourceTo.message)
 				return
@@ -250,7 +250,7 @@ export default class {
 		const [optional, cmd] = _cmd
 		const co = await util.getOptCollection(cmd)
 
-		const item = util.findRecurse(co, args)
+		const item = util.getNestedResource(co, args)
 		if (util._.isError(item)) {
 			util.logger.error(item.message)
 			return
@@ -264,7 +264,7 @@ export default class {
 		const [optional, cmd] = _cmd
 		const co = await util.getOptCollection(cmd)
 
-		const item = util.findRecurse(co, args)
+		const item = util.getNestedResource(co, args)
 		if (util._.isError(item)) {
 			util.logger.error(item.message)
 			return

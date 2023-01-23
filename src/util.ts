@@ -1,12 +1,12 @@
-import * as fs from 'fs-extra'
+import fs from 'fs-extra'
 import psdk from 'postman-collection'
 import axios from 'axios'
-import { inspect } from 'util'
-import uuid from 'uuid'
+import {inspect} from 'util'
+import * as uuid from 'uuid'
 import _ from 'lodash'
 
-import { logger } from './logger.js'
-export { logger, _ }
+import {logger} from './logger.js'
+export {logger, _}
 import * as utilpman from './postman.js'
 import env from './env.js'
 import {PcliResource} from 'typings.js'
@@ -114,22 +114,25 @@ export function getOptVariables(cmd) {
 }
 
 /**
+ * Returns collection instance from commandline option.
  * @kind util
  */
 export async function getOptCollection(cmd) {
-	const filepath = cmd.parent.opts().collection || env.collectionFilepath
+	const filepath = cmd.parent.opts().collection || env.collectionFilepath // either file path or uuid
 	const foundFile = await fileExists(filepath)
 
 	let _co: any = {}
 
 	if (filepath && foundFile) _co = await fs.readJson(filepath, 'utf8')
 	else if (!filepath && env.apiKey && env.collectionUrl) {
-		const axiosopts = { headers: { 'X-API-Key': env.apiKey } }
-		const { data } = await axios.get(env.collectionUrl, axiosopts)
+		const axiosopts = {headers: {'X-API-Key': env.apiKey}}
+		const {data} = await axios.get(env.collectionUrl, axiosopts)
 		_co = data.collection
 	} else if (filepath && !foundFile && uuid.validate(filepath) && env.apiKey) {
-		// uuid
-		// TODO make request with apikey
+		const axiosopts = {headers: {'X-API-Key': env.apiKey}}
+		const url = "https://api.getpostman.com/collections/"+filepath
+		const {data} = await axios.get(url, axiosopts)
+		_co = data.collection
 	}
 
 	if (_.isEqual(_co, {})) logger.warn('no collection is found, creating new')
@@ -144,7 +147,7 @@ export function fileExists(path) {
 		.catch(_ => false)
 }
 
-export function arrayMove(arr:any[], fromIndex:number, toIndex:number) {
+export function arrayMove(arr: any[], fromIndex: number, toIndex: number) {
 	const element = arr[fromIndex]
 	arr.splice(fromIndex, 1)
 	arr.splice(toIndex, 0, element)

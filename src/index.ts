@@ -76,7 +76,7 @@ program
 	.option('--data [string]')
 	.option('--headers [string]', 'headers as a json string')
 program.command('update <resources...>')
-program.command('env').description('manage environment variables') // represented as a big json
+program.command('env').description('manage environment variables') // represented as a big json; maybe not needed
 
 program
 	.command('search <resources...>')

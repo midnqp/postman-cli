@@ -38,11 +38,20 @@ export default class {
 		}
 
 		if (args.t == 'folder') {
+			if (!util.isColl(resParent)) {
+				util.logger.error('when adding a folder, parent must be a collection or folder')
+				return
+			}
 			const ch = util.getChildren(resParent, false)
 			const folder = new psdk.ItemGroup({ name: args.name, item: [] })
 			ch.add(folder)
 			if (argsIdx != -1) util.arrayMove(ch.members, ch.indexOf(folder.id), argsIdx - 1)
 		} else if (args.t == 'request') {
+			if (!util.isColl(resParent) || !util.isFolder(resParent)) {
+				util.logger.error('when adding a request, parent must be a collection or folder')
+				return
+			}
+
 			const input: PcliOpts.CmdAddRequestInput = await enquirer.prompt({
 				type: 'form',
 				name: 'requestFields',
@@ -58,12 +67,23 @@ export default class {
 						message: 'path variables',
 						initial: '{}',
 					},
-					{ name: 'body', initial: '{}' },
+					{ name: 'body', initial: '{}', value:'{}' },
 				],
 			})
-			console.log(input, util.toJsonString(input.body))
+
+			const item= new psdk.Item({name: args.name, request: {
+				url: input.url,
+				method: input.method,
+				body: {
+					mode:input.type, 
+					raw: util.toJsonString( input.body)
+				}
+			}})
+			resParent.items.add(item)
+			// TODO test
 		}
 
+		//util.saveChanges(cmd, co)
 		util.showResourceListRecur([resParent])
 	}
 

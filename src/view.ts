@@ -4,7 +4,7 @@ import psdk from 'postman-collection'
 import * as util from './util.js'
 import { expect } from 'chai'
 import contentType from 'content-type'
-import {PcliResourceDetails, _resourcedetails_, PcliRequestable} from 'typings.js'
+import {PcliResourceDetails, _resourcedetails_, PcliRequestable} from './typings.js'
 
 
 export function isResourceDetails(r): r is PcliResourceDetails {

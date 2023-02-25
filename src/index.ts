@@ -1,12 +1,12 @@
 import {Command} from 'commander'
-import Cmd from './cmd.js'
+import CmdHandler from '@src/handlers/index.js'
 
-/**
- * @todo Output to stdout all data as JSON.
- * Curly braces' color be white.
- */
+
 const program = new Command()
-program.name('pcli').description('postman command-line interface').version('0.0.1', '--version').helpOption('--help')
+program.name('pcli')
+	.description('postman command-line interface')
+	.version('0.0.3', '--version')
+	.helpOption('--help')
 
 program
 	.option('-c, --collection <string>', 'path to collection')
@@ -16,73 +16,41 @@ program
 program
 	.command('show <resources...>')
 	.description('show details of a resource')
-	.option('--res', 'include example response body')
-	.option('--info', 'include additional info, if available')
-	.option('--nocompact', "don't hide longer responses")
-	.option('--hide <string>', 'hide comma-separated object paths')
-	.option('-hl, --highlight <string>', 'highlight comma-separated object paths')
-	.action(Cmd.show)
+	.action(CmdHandler.show)
 
 program
 	.command('list [resources...]')
 	.description('list resources recursively')
-	.option('-d [number]', 'set max recursion depth', 'Infinity')
-	.action(Cmd.list)
+	.option('-d [number]', 'max recursive depth', 'Infinity')
+	.action(CmdHandler.list)
 
 program
 	.command('run <resources...>')
 	.description('runs a request')
-	.option('--req', 'include request')
-	.option('--info', 'include response info')
-	.action(Cmd.run)
+	.action(CmdHandler.run)
 
 program
 	.command('move')
+	.description('move a resource under another parent')
 	.requiredOption('--from <resources...>')
 	.requiredOption('--to <resources...>')
-	.description('move a resource under another parent')
-	.action(Cmd.move)
+	.action(CmdHandler.move)
 
 program
 	.command('rename <resources...>')
 	.description('rename a resource')
 	.requiredOption('--name <string>', 'new name of resource')
-	.action(Cmd.rename)
+	.action(CmdHandler.rename)
 
-program.command('delete <resources...>').description('remove a resource').action(Cmd.delete)
+program
+	.command('delete <resources...>')
+	.description('remove a resource')
+	.action(CmdHandler.delete)
+
 program
 	.command('reorder <resources...>')
 	.description('reorder a resource under the same parent')
 	.requiredOption('--index <number>', 'new 1-based index')
-	.action(Cmd.reorder)
-
-/**
-program
-	.command('add')
-	.description('adds a new resource')
-	.requiredOption('-t <type>', 'type of resource, one of: folder, request, example')
-	.requiredOption('--name <string>', 'name of resource')
-	.requiredOption('--parent <resources...>', 'parent of new resource')
-	.option('--index [number]', '1-based index')
-	.action(Cmd.add)
-
-program.command('quickrun [resources...]').description('edit and run a request, without saving changes')
-program
-	.command('simple')
-	.description('run any simple request')
-	.requiredOption('--url <string>')
-	.option('--method <string>', '', 'get')
-	.option('--data [string]')
-	.option('--headers [string]', 'headers as a json string')
-program.command('update <resources...>')
-	.description('update a resource')
-	.option('--name <string>', 'name of resource')
-
-program
-	.command('search <resources...>')
-	.description('searches by name of resource')
-	.option('-t <type>', 'type of resource, one of: folder, request, example', 'request')
-*/
+	.action(CmdHandler.reorder)
 
 program.parse()
-

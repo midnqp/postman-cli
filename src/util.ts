@@ -4,16 +4,30 @@ import axios from 'axios'
 import {inspect} from 'util'
 import * as uuid from 'uuid'
 import _ from 'lodash'
+import newman from 'newman'
 
-import {logger} from './logger.js'
+import {logger} from '@src/logger.js'
+import * as utilpman from '@src/postman.js'
+import env from '@src/env.js'
+import {PostmanCli} from '@src/types.js'
+
 export {logger, _}
-import * as utilpman from './postman.js'
-import env from './env.js'
-import {PcliResource} from 'typings.js'
-import {PcliOpts} from './typings.js'
-export * from './postman.js'
-export * from './traverse.js'
-export * from './view.js'
+export * from '@src/postman.js'
+export * from '@src/traverse.js'
+export * from '@src/view.js'
+
+/**
+ * Promisified `newman.run`.
+ * @throws Error
+ */
+export function newmanRun(options: newman.NewmanRunOptions): Promise<newman.NewmanRunSummary> {
+	return new Promise((resl, rejc) => {
+		newman.run(options, (err, summary) => {
+			if (err) rejc(err)
+			resl(summary)
+		})
+	})
+}
 
 /** Convert a string of JavaScript object into JSON-parsable string. */
 export function toJsonString(input: string) {
@@ -59,10 +73,14 @@ export function benchSync(cb: Function) {
  * @param args Nested resources, e.g. folder1 folder2 request1 example2
  * @kind util
  */
-export function getNestedResource(parent, args: string[]): PcliResource | Error {
+export function getNestedResource(parent, args: string[]): PostmanCli.Resource | Error {
 	if (args[0] == parent.name) {
 		const children = utilpman.getChildren(parent)
-		const found = children.find(child => child.name.toLowerCase() == parent.name.toLowerCase())
+		const found = children.find(child => {
+			const c = child.name.toLowerCase()
+			const p = parent.name.toLowerCase()
+			return c == p
+		})
 		// it refers to parent itself, and only item
 		if (!found && args.length == 1) return parent
 		// probably it refers to the parent itself

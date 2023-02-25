@@ -1,15 +1,23 @@
 import chalk from 'chalk'
 import _ from 'lodash'
 import psdk from 'postman-collection'
-import * as util from './util.js'
-import { expect } from 'chai'
+import * as util from '@src/util.js'
+import {expect} from 'chai'
 import contentType from 'content-type'
-import {PcliResourceDetails, _resourcedetails_, PcliRequestable} from './typings.js'
+import {PostmanCli} from '@src/types.js'
 
 
-export function isResourceDetails(r): r is PcliResourceDetails {
+export function isResourceDetails(r): r is PostmanCli.ResourceDetails {
 	try {
-		expect(new Set([r])).to.have.deep.keys([_resourcedetails_])
+		const any = {} as any
+		const resDetailMock = {
+			headers: any,
+			params: any,
+			query: any,
+			body: any,
+			url: {path: '', method: ''}
+		}
+		expect(new Set([r])).to.have.deep.keys([resDetailMock])
 		return true
 	} catch (err) {
 		return false
@@ -20,9 +28,9 @@ export function isResourceDetails(r): r is PcliResourceDetails {
  * Show an item/example formatted.
  * @kind util
  */
-export function showDetails(resource: PcliRequestable | PcliResourceDetails, ignore: any = ['url', 'headers']) {
+export function showDetails(resource: PostmanCli.Requestable | PostmanCli.ResourceDetails, ignore: any = ['url', 'headers']) {
 	let name = ''
-	let details: PcliResourceDetails
+	let details: PostmanCli.ResourceDetails
 
 	if (isResourceDetails(resource)) details = resource
 	else {
@@ -49,7 +57,7 @@ function showFormattedObject(details, options: Array<string> | any) {
 	let expandOptions = {} as any
 
 	if (_.isPlainObject(options)) {
-		const { ignore: _ignore, ..._expandOptions } = options
+		const {ignore: _ignore, ..._expandOptions} = options
 		expandOptions = _expandOptions
 	} else {
 		ignore = options
@@ -64,11 +72,11 @@ function showFormattedObject(details, options: Array<string> | any) {
 		const _v = util.ex(v)
 		if (_v.length > 2) filteredDetails[k] = v
 	})
-	return util.ex(filteredDetails, { compact: isCompact, ...expandOptions })
+	return util.ex(filteredDetails, {compact: isCompact, ...expandOptions})
 }
 
 /** Gets details from Postman requests and examples. */
-export function getReqDetails(resource: PcliRequestable): Error | PcliResourceDetails {
+export function getReqDetails(resource: PostmanCli.Requestable): Error | PostmanCli.ResourceDetails {
 	let req: psdk.Request | undefined
 	if (util.isResp(resource)) req = resource.originalRequest
 	else if (util.isItem(resource)) req = resource.request
@@ -82,7 +90,7 @@ export function getReqDetails(resource: PcliRequestable): Error | PcliResourceDe
 		query: req.url.query.toObject(),
 		body: JSON.parse(req.body?.raw || '{}'),
 		url: {
-			path: req.url.getPath({ unresolved: true }),
+			path: req.url.getPath({unresolved: true}),
 			method: req.method.toLowerCase(),
 		},
 		headers: req.headers.toObject(),
@@ -107,7 +115,7 @@ export function getRespDetails(r: psdk.Response) {
 	// else if image -- libcaca view
 	// else if sound -- play sound
 
-	return { _parsed, size: r.responseSize, time: r.responseTime, code: r.code, status: r.status, body, headers }
+	return {_parsed, size: r.responseSize, time: r.responseTime, code: r.code, status: r.status, body, headers}
 }
 
 export function showRespDetails(r: psdk.Response, options: any = ['_parsed', 'code', 'status']) {
@@ -137,7 +145,7 @@ export function showRespDetails(r: psdk.Response, options: any = ['_parsed', 'co
 /** List resource tree using `travDeepFirst`. */
 export function showResourceListRecur(initialparent, options = {}) {
 	const cb = nextArgs => {
-		const { item } = nextArgs
+		const {item} = nextArgs
 		let d = nextArgs.currDepth
 		if (util.isResp(item)) d++ // reached to the last i.e. an example
 		const icon = util.getResourceIcon(item)

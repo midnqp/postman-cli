@@ -1,31 +1,40 @@
 {
 	"compilerOptions": {
-		"incremental": true,
-		"listEmittedFiles": false,
-		"esModuleInterop": true,
-		"removeComments": false,
 		"module": "ESNext",
 		"target": "ES2017",
+		"moduleResolution": "node",
+		"paths": {
+			"@src/*": [
+				"src/*"
+			]
+		},
+		"lib": [
+			"ES2017"
+		],
+		"outDir": "dist",
+		"rootDir": ".",
+		"baseUrl": ".",
+		"strict": true,
+		"allowSyntheticDefaultImports": true,
+		"incremental": true,
+		"esModuleInterop": true,
 		"allowJs": true,
 		"checkJs": true,
 		"skipLibCheck": true,
-		"moduleResolution": "node",
-		"lib": ["ES2017"],
-		"strict": true,
-		"emitDecoratorMetadata": true,
-		"experimentalDecorators": true,
-		"allowSyntheticDefaultImports": true,
-		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
-		"rootDir": ".",
-		"sourceMap": true,
+		"listEmittedFiles": false,
+		"removeComments": false,
+		"sourceMap": false,
 		"listFiles": false,
 		"declaration": false,
-		"outDir": "dist",
-		"baseUrl": "./src",
+		"forceConsistentCasingInFileNames": false,
 		"noImplicitAny": false,
-		"suppressExcessPropertyErrors": true,
+		"emitDecoratorMetadata": false,
+		"experimentalDecorators": false,
+		"suppressExcessPropertyErrors": false,
 		"suppressImplicitAnyIndexErrors": false
 	},
-	"include": ["src/**/*"]
+	"include": [
+		"src/**/*"
+	]
 }

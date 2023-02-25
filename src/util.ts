@@ -10,6 +10,7 @@ export {logger, _}
 import * as utilpman from './postman.js'
 import env from './env.js'
 import {PcliResource} from 'typings.js'
+import {PcliOpts} from './typings.js'
 export * from './postman.js'
 export * from './traverse.js'
 export * from './view.js'
@@ -130,21 +131,24 @@ export async function getOptCollection(cmd) {
 		_co = data.collection
 	} else if (filepath && !foundFile && uuid.validate(filepath) && env.apiKey) {
 		const axiosopts = {headers: {'X-API-Key': env.apiKey}}
-		const url = "https://api.getpostman.com/collections/"+filepath
+		const url = "https://api.getpostman.com/collections/" + filepath
 		const {data} = await axios.get(url, axiosopts)
 		_co = data.collection
 	}
 
-	if (_.isEqual(_co, {})) logger.warn('no collection is found, creating new')
+	if (_.isEqual(_co, {}))
+		logger.error('no collection found')
+
 	const co = _co.collection ? _co.collection : _co
-	return new psdk.Collection(co)
+	const result = new psdk.Collection(co)
+	return result
 }
 
 export function fileExists(path) {
 	return fs
 		.access(path)
-		.then(_ => true)
-		.catch(_ => false)
+		.then(() => true)
+		.catch(() => false)
 }
 
 export function arrayMove(arr: any[], fromIndex: number, toIndex: number) {
@@ -152,3 +156,26 @@ export function arrayMove(arr: any[], fromIndex: number, toIndex: number) {
 	arr.splice(fromIndex, 1)
 	arr.splice(toIndex, 0, element)
 }
+
+
+/**
+export const transformer = {
+	itemToFormprompt(item: psdk.Item): PcliOpts.CmdUpdateRequestInput {
+		const allHeaders = item.request.headers.all()
+		const _headerString: Record<string, unknown> = {}
+		for (const {key, value} of allHeaders) _headerString[key] = value
+		const headerString = JSON.stringify(_headerString)
+
+
+
+		return {
+			body: item.request.body?.raw || '{}',
+			headers: headerString,
+			method: item.request.method,
+			pathvar: item.request.pathvar // TODO needs to be in string ? :)
+		}
+	},
+
+	toNewformprompt(input: PcliOpts.CmdUpdateRequestInput) {}
+}
+**/

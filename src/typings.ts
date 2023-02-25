@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-namespace */
 import psdk from 'postman-collection'
 
 const _any = {} as any
-export const _resourcedetails_ = { headers: _any, params: _any, query: _any, body: _any, url: { path: '', method: '' } }
+export const _resourcedetails_ = {headers: _any, params: _any, query: _any, body: _any, url: {path: '', method: ''}}
 export type PcliResourceDetails = typeof _resourcedetails_
 export type PcliRequestable = psdk.Request | psdk.Item | psdk.Response
 export type PcliResource = psdk.Item | psdk.ItemGroup<any> | psdk.Response
@@ -23,7 +24,7 @@ export namespace PcliOpts {
 		hide?: string
 		hl?: string
 	}
-	export type CmdListOpts = { d: number }
+	export type CmdListOpts = {d: number}
 	export type CmdRunOpts = {
 		req?: true
 		info?: true
@@ -32,22 +33,23 @@ export namespace PcliOpts {
 		from: CmdVariadicResources
 		to: CmdVariadicResources
 	}
-	export type CmdRenameOpts = { name: string }
-	export type CmdDeleteOpts = { index: number }
-	export type CmdReorderOpts = {index:string}
+	export type CmdRenameOpts = {name: string}
+	export type CmdDeleteOpts = {index: number}
+	export type CmdReorderOpts = {index: string}
 	export type CmdAddOpts = {
 		t: PcliResourceOr
 		name: string
 		parent: CmdVariadicResources
 		index?: string
 	}
+	export type CmdUpdateOpts = {name?: string}
 	export type CmdSimpleOpts = {
 		url?: string
 		method?: string
 		data?: string
 		headers?: string
 	}
-	export type CmdSearchOpts = { t: PcliResourceOr }
+	export type CmdSearchOpts = {t: PcliResourceOr}
 	export type CmdAddRequestInput = {
 		body: string
 		method: 'get' | 'post' | 'put' | 'delete'
@@ -56,5 +58,10 @@ export namespace PcliOpts {
 		headers: string
 		query: string
 		pathvar: string
+	}
+	export type CmdUpdateRequestInput = CmdAddRequestInput
+	export type CmdAddExampleInput = CmdAddRequestInput & {
+		responseTime: number,
+		statusCode: number
 	}
 }

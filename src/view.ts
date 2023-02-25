@@ -26,7 +26,7 @@ export function showDetails(resource: PcliRequestable | PcliResourceDetails, ign
 
 	if (isResourceDetails(resource)) details = resource
 	else {
-		let _details = getReqDetails(resource)
+		const _details = getReqDetails(resource)
 		if (_.isError(_details)) return _details
 		details = _details
 		name = resource.name

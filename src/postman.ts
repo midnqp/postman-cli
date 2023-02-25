@@ -1,12 +1,12 @@
-import { promises as fs } from 'fs'
+import {promises as fs} from 'fs'
 import chalk from 'chalk'
 import psdk from 'postman-collection'
 import axios from 'axios'
 import env from './env.js'
 import _ from 'lodash'
 
-import { logger } from './logger.js'
-import { ex, travConsts, travDeepFirst } from './util.js'
+import {logger} from './logger.js'
+import {ex, travConsts, travDeepFirst} from './util.js'
 
 export function getResourceByName(arr, name) {
 	return travDeepFirst(arr, data => data.item.name == name)
@@ -23,7 +23,7 @@ export function getResourceById(arr, id) {
  * @param args nested resources
  * e.g. folder2 folder1 request4 example1
  */
-export function getResourceFromArgs(co, args:string[]) {
+export function getResourceFromArgs(co, args: string[]) {
 	let i = 0
 	let resource
 	const cb = nextArgs => {
@@ -42,7 +42,7 @@ export function getResourceFromArgs(co, args:string[]) {
 
 export function getResourceIcon(resource) {
 	let text = ''
-	let color = chalk.bold
+	const color = chalk.bold
 	if (isColl(resource)) text = 'C'
 	else if (isFolder(resource)) text = 'F'
 	else if (isItem(resource)) text = 'R'
@@ -94,10 +94,10 @@ export function isPostmanEntity(item) {
 export function getItemParent(arr, parentid) {
 	const parent = travDeepFirst(
 		arr,
-		({ nextArr }) => {
+		({nextArr}) => {
 			if (nextArr.find(e => e.id == parentid)) return true
 		},
-		{ currDepth: 0, returnOnStop: true }
+		{currDepth: 0, returnOnStop: true}
 	)
 	return parent
 }
@@ -155,8 +155,8 @@ export async function saveChanges(cmd, collection) {
 
 export function parseAxiosError(err) {
 	const {
-		config: { url },
-		response: { status, statusText, headers, data },
+		config: {url},
+		response: {status, statusText, headers, data},
 	} = err
-	return { url, status, statusText, headers, data }
+	return {url, status, statusText, headers, data}
 }

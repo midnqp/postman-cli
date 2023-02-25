@@ -1,4 +1,4 @@
-import { Command } from 'commander'
+import {Command} from 'commander'
 import Cmd from './cmd.js'
 
 /**
@@ -56,6 +56,7 @@ program
 	.requiredOption('--index <number>', 'new 1-based index')
 	.action(Cmd.reorder)
 
+/**
 program
 	.command('add')
 	.description('adds a new resource')
@@ -64,8 +65,6 @@ program
 	.requiredOption('--parent <resources...>', 'parent of new resource')
 	.option('--index [number]', '1-based index')
 	.action(Cmd.add)
-// TODO: take interactive prompts of input for this command
-// prompts: type, name, then... different fields based on `type`
 
 program.command('quickrun [resources...]').description('edit and run a request, without saving changes')
 program
@@ -76,12 +75,14 @@ program
 	.option('--data [string]')
 	.option('--headers [string]', 'headers as a json string')
 program.command('update <resources...>')
-program.command('env').description('manage environment variables') // represented as a big json; maybe not needed
+	.description('update a resource')
+	.option('--name <string>', 'name of resource')
 
 program
 	.command('search <resources...>')
 	.description('searches by name of resource')
 	.option('-t <type>', 'type of resource, one of: folder, request, example', 'request')
+*/
 
 program.parse()
 

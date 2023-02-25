@@ -3,7 +3,7 @@ import * as util from './util.js'
 import newman from 'newman'
 import * as commander from 'commander'
 import enquirer from 'enquirer'
-import { PcliOpts, PcliResource } from './typings.js'
+import {PcliOpts, PcliResource} from './typings.js'
 
 /**
  * Promisified `newman.run`.
@@ -19,6 +19,33 @@ function newmanRun(options: newman.NewmanRunOptions): Promise<newman.NewmanRunSu
 }
 
 export default class {
+	/**
+	static async update(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdUpdateOpts, commander.Command]) {
+		const [opts, cmd] = _cmd
+		const co = await util.getOptCollection(cmd)
+
+		const resource = util.getNestedResource(co, args)
+		if (util._.isError(resource)) {
+			util.logger.error(resource.message)
+			return
+		}
+
+		if (util.isFolder(resource)) {
+			if (opts.name)
+				resource.name = opts.name
+
+		}
+		else if (util.isItem(resource)) {
+			const currInput = util.transformer.itemToFormprompt(resource)
+			const input = await enquirer.prompt({
+				type: 'form',
+				name: 'requestFields',
+				message: 'specify request',
+				choices: [{name: 'method', initial: currInput}]
+			})
+		}
+	}
+
 	static async add(args: PcliOpts.CmdAddOpts, cmd: commander.Command) {
 		const co = await util.getOptCollection(cmd)
 		let argsIdx = -1
@@ -43,7 +70,7 @@ export default class {
 				return
 			}
 			const ch = util.getChildren(resParent, false)
-			const folder = new psdk.ItemGroup({ name: args.name, item: [] })
+			const folder = new psdk.ItemGroup({name: args.name, item: []})
 			ch.add(folder)
 			if (argsIdx != -1) util.arrayMove(ch.members, ch.indexOf(folder.id), argsIdx - 1)
 		} else if (args.t == 'request') {
@@ -57,35 +84,87 @@ export default class {
 				name: 'requestFields',
 				message: 'specify request',
 				choices: [
-					{ name: 'method', initial: 'get' },
-					{ name: 'url', initial: '{{server}}' },
-					{ name: 'type', message: 'type', initial: 'json' },
-					{ name: 'headers', initial: '{}' },
-					{ name: 'query', initial: '{}' },
+					{name: 'method', initial: 'get'},
+					{name: 'url', initial: '{{server}}'},
+					{name: 'type', message: 'type', initial: 'json'},
+					{name: 'headers', initial: '{}'},
+					{name: 'query', initial: '{}'},
 					{
 						name: 'pathvar',
 						message: 'path variables',
 						initial: '{}',
 					},
-					{ name: 'body', initial: '{}', value:'{}' },
+					{name: 'body', initial: '{}', value: '{}'},
 				],
 			})
+			const parsedHeaders: object = JSON.parse(util.toJsonString(input.headers))
+			const headers: psdk.HeaderDefinition[] = []
+			for (const [key, value] of Object.entries(parsedHeaders)) {
+				headers.push({key, value})
+			}
+			// TODO unpack path var
 
-			const item= new psdk.Item({name: args.name, request: {
-				url: input.url,
-				method: input.method,
-				body: {
-					mode:input.type, 
-					raw: util.toJsonString( input.body)
+			// TODO add query, pathvar to URL
+			const item = new psdk.Item({
+				name: args.name,
+				request: {
+					url: input.url,
+					method: input.method,
+					header: headers,
+					body: {
+						mode: input.type,
+						raw: util.toJsonString(input.body)
+					}
 				}
-			}})
+			})
 			resParent.items.add(item)
 			// TODO test
 		}
+		else if (args.t == 'example') {
+			if (!util.isItem(resParent)) {
+				util.logger.error('when adding an example, parent must be a request')
+				return
+			}
+			const input: PcliOpts.CmdAddExampleInput = await enquirer.prompt({
+				type: 'form',
+				name: 'requestFields',
+				message: 'specify request',
+				choices: [
+					{name: 'method', initial: 'get'},
+					{name: 'url', initial: '{{server}}'},
+					{name: 'type', message: 'type', initial: 'json'},
+					{name: 'statusCode', initial: '', required: false},
+					{name: 'responseTime', initial: '', required: false},
+					{name: 'headers', initial: '{}'},
+					{name: 'query', initial: '{}'},
+					{
+						name: 'pathvar',
+						message: 'path variables',
+						initial: '{}',
+					},
+					{name: 'body', initial: '{}', value: '{}'},
+				],
+			})
+			const parsedHeaders: object = JSON.parse(util.toJsonString(input.headers))
+			const headers: psdk.HeaderDefinition[] = []
+			for (const [key, value] of Object.entries(parsedHeaders)) {
+				headers.push({key, value})
+			}
 
-		//util.saveChanges(cmd, co)
+			const item = new psdk.Response({
+				code: input.statusCode,
+				body: input.body,
+				responseTime: input.responseTime,
+				header: headers
+			})
+			resParent.responses.add(item)
+			// TODO test
+		}
+
+		//util.saveChanges(cmd, co) // TODO save!
 		util.showResourceListRecur([resParent])
 	}
+	**/
 
 	static async reorder(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdReorderOpts, commander.Command]) {
 		const [optional, cmd] = _cmd
@@ -156,7 +235,7 @@ export default class {
 			initialparent = [res]
 		}
 
-		util.showResourceListRecur(initialparent, { d: optional.d })
+		util.showResourceListRecur(initialparent, {d: optional.d})
 	}
 
 	static async run(args: PcliOpts.CmdVariadicResources, ..._cmd: [PcliOpts.CmdListOpts, commander.Command]) {
@@ -171,7 +250,7 @@ export default class {
 			return
 		}
 		let runnable: any = resource
-		let restoreOrigReq: any = {
+		const restoreOrigReq: any = {
 			changed: false,
 			req: undefined,
 			prevreqdata: undefined,
@@ -180,7 +259,7 @@ export default class {
 		if (util.isResp(resource)) {
 			const tmp = resource.parent()
 			if (tmp) {
-				let item = tmp as psdk.Item
+				const item = tmp as psdk.Item
 				const exampledata = resource?.originalRequest?.body?.raw || ''
 
 				let prevreqdata
@@ -197,13 +276,13 @@ export default class {
 		}
 
 		try {
-			const summ = await newmanRun({ collection: co, folder: runnable.id })
+			const summ = await newmanRun({collection: co, folder: runnable.id})
 			const execs = summ.run.executions
 			const fails = summ.run.failures
 
 			execs.forEach(exec => {
 				// @ts-ignore
-				const { response, item: _item } = exec
+				const {response, item: _item} = exec
 				const item = _item as any
 				if (!item || !response) return
 
@@ -226,7 +305,7 @@ export default class {
 				const resource = fail.source as any
 				if (!resource) return
 				util.logger.error(fail.error.message)
-				const details = util.showDetails(resource, { compact: false })
+				const details = util.showDetails(resource, {compact: false})
 				if (util._.isError(details)) {
 					util.logger.error(details.message)
 					return

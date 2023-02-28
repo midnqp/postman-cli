@@ -1,30 +1,36 @@
 import psdk from 'postman-collection'
-import * as util from '@src/util.js'
-import newman from 'newman'
+import services from '@src/services/index.js'
 import * as commander from 'commander'
-import {PostmanCli} from '@src/types.js'
+import { PostmanCli } from '@src/types.js'
 
-export default async function (args: PostmanCli.Cmd.VariadicResources, ..._cmd: [PostmanCli.Cmd.Opts.Reorder, commander.Command]) {
-	const [optional, cmd] = _cmd
-	const co = await util.getOptCollection(cmd)
-	const resource = util.getNestedResource(co, args)
-	if (util._.isError(resource)) {
-		util.logger.error(resource.message)
-		return
-	}
-	let optsIdx = parseInt(optional.index)
+export default async function (
+    args: PostmanCli.Cmd.VariadicResources,
+    ..._cmd: [PostmanCli.Cmd.Opts.Reorder, commander.Command]
+) {
+    const [optional, cmd] = _cmd
+    const co = await services.cmdopts.getOptCollection(cmd)
+    const resource = services.common.getNestedResource(co, args)
+    if (services.common._.isError(resource)) {
+        services.logger.error(resource.message)
+        return
+    }
+    let optsIdx = parseInt(optional.index)
 
-	const parent = resource.parent()
-	const children: psdk.PropertyList<any> = util.getChildren(parent, false)
-	const length = children.count()
-	optsIdx = optsIdx - 1 // it was 1-based index
-	if (optsIdx >= length - 1) optsIdx = length - 1
-	else if (optsIdx <= 0) optsIdx = 0
+    const parent = resource.parent()
+    const children: psdk.PropertyList<any> = services.resource.getChildren(
+        parent,
+        false
+    )
+    const length = children.count()
+    optsIdx = optsIdx - 1 // it was 1-based index
+    if (optsIdx >= length - 1) optsIdx = length - 1
+    else if (optsIdx <= 0) optsIdx = 0
 
-	if (length > 1) {
-		// @ts-ignore
-		util.arrayMove(children.members, children.indexOf(resource.id), optsIdx)
-		await util.saveChanges(cmd, co)
-	}
-	util.showResourceListRecur([parent])
+    if (length > 1) {
+        const resIdx = children.indexOf(resource.id)
+        // @ts-ignore
+        services.common.arrayMove(children.members, resIdx, optsIdx)
+        await services.collection.saveChanges(cmd, co)
+    }
+    services.resource.printOutline([parent])
 }

@@ -14,22 +14,29 @@ export class CmdOptsService {
         return JSON.parse(variables)
     }
 
+    #isCollectionId(id: string) {
+        const firstPart: string = id.split('-')[0]
+        const num = Number(firstPart)
+        if (Number.isInteger(num)) id = id.slice(firstPart.length + 1)
+        return uuid.validate(id)
+    }
+
     async getOptCollection(cmd: commander.Command) {
         if (!cmd.parent) throw Error('cmd.parent is null')
 
         // either filepath or uuid
-        const filepath =
+        const idOrFile =
             cmd.parent.opts().collection || services.env.collectionFilepath
-        const foundFile = await services.common.fileExists(filepath)
+        const foundFile = await services.common.fileExists(idOrFile)
 
         let collection: psdk.Collection
 
-        if (filepath && foundFile) {
-            const co = await fs.readJson(filepath, 'utf8')
+        if (idOrFile && foundFile) {
+            const co = await fs.readJson(idOrFile, 'utf8')
             collection = co
             if (co?.collection) collection = co.collection
         } else if (
-            !filepath &&
+            !idOrFile &&
             services.env.apiKey &&
             services.env.collectionUrl
         ) {
@@ -40,13 +47,13 @@ export class CmdOptsService {
             )
             collection = data.collection
         } else if (
-            filepath &&
+            idOrFile &&
             !foundFile &&
-            uuid.validate(filepath) &&
+            this.#isCollectionId(idOrFile) &&
             services.env.apiKey
         ) {
             const axiosopts = { headers: { 'X-API-Key': services.env.apiKey } }
-            const url = 'https://api.getpostman.com/collections/' + filepath
+            const url = 'https://api.getpostman.com/collections/' + idOrFile
             const { data } = await axios.get(url, axiosopts)
             collection = data.collection
         } else {
@@ -57,8 +64,17 @@ export class CmdOptsService {
         return result
     }
 
-    getOptHeaders(cmd: commander.Command) {
+    getOptHeaders(cmd: commander.Command): psdk.Header[] {
         if (!cmd.parent) throw Error('cmd.parent is null')
+        const headersString =
+            cmd.parent.opts().headers || services.env.globalHeaders || '{}'
+        const headers = JSON.parse(headersString)
+        const result = Object.entries(headers).map(([k, v]) => {
+            const value: string | any = v
+            return new psdk.Header({ key: k, value, system: true })
+        })
+        console.log(result)
+        return result
     }
 }
 

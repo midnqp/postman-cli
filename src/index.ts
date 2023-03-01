@@ -21,7 +21,7 @@ program
 program
     .command('list [resources...]')
     .description('list resources recursively')
-    .option('-d [number]', 'max recursive depth', 'Infinity')
+    .option('-d, --depth [number]', 'max recursive depth', 'Infinity')
     .action(Handlers.list)
 
 program

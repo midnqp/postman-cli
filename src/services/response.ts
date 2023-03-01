@@ -31,31 +31,39 @@ export class ResponseService {
     }
 
     toPrintable(r: psdk.Response): PostmanCli.ResponsePrintable {
-        const stream = r.stream
         const headers = r.headers.toObject()
-        let $parsedBody: any = stream
         let $parseHint: PostmanCli.ResponsePrintable['$parseHint']
+        let $parsedBody: any
+        let rawBody: any
 
         if (!r.originalRequest) throw Error('request not found in response')
         const request = services.request.toPrintable(r.originalRequest)
 
-        const type = contentType.parse(headers['content-type'])
+        if (r.originalRequest.body) {
+            const body = r.originalRequest?.body
+            const mode = body.mode
+            type ResponseLang = 'json' | 'text' | undefined
+            // @ts-ignore
+            const lang: ResponseLang = body.options[mode]?.language
+            const raw = body[mode]
+            rawBody = raw
 
-        if (type.type.includes('json') && stream) {
-            $parsedBody = JSON.parse(stream.toString())
-            $parseHint = 'json'
-        } else if (type.type.includes('text') && stream) {
-            $parsedBody = stream.toString()
-            $parseHint = 'text'
+            if (lang == 'json' && raw) {
+                $parsedBody = r.json()
+                $parseHint = 'json'
+            } else if (lang == 'text' && raw) {
+                $parsedBody = r.text()
+                $parseHint = 'text'
+            }
         }
 
         return {
             ...request,
             headers,
-            body: stream,
-            $parsedBody: $parsedBody,
+            body: rawBody,
+            $parsedBody,
             $parseHint,
-            size: r.responseSize,
+            size: r.size() as any,
             time: r.responseTime,
             code: r.code,
             status: r.status,
@@ -63,14 +71,14 @@ export class ResponseService {
     }
 
     getPrintString(r: PostmanCli.ResponsePrintable): string {
-        let result = '\n' + chalk.underline.bold('response')
-        result += ' ' + this.getCodeIcon(r.code, r.status)
+        const rr = Object.assign({}, r)
+        let result = this.getCodeIcon(rr.code, rr.status)
 
-        if (r.$parseHint && ['json', 'text'].includes(r.$parseHint)) {
-            r.body = r.$parsedBody
+        if (rr.$parseHint && ['json', 'text'].includes(rr.$parseHint)) {
+            rr.body = rr.$parsedBody
         }
-        const opts = { ignore: ['$parseHint', '$parsedBody'] }
-        result += '\n' + services.common.getFormattedObject(r, opts)
+        const opts = ['$parseHint', '$parsedBody', 'code', 'status']
+        result += '\n' + services.common.getFormattedObject(rr, opts)
 
         return result
     }

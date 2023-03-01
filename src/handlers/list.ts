@@ -21,5 +21,5 @@ export default async function (
         parent = [res]
     }
 
-    services.resource.printOutline(parent, { d: optional.d })
+    services.resource.printOutline(parent, { d: optional.depth })
 }

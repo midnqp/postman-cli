@@ -51,20 +51,14 @@ export class CommonService {
     /**
      * Pretty-prints an object recursively.
      */
-    getPrintedObject(o, compact: any = false) {
-        let _compact = false
-        if (lodash.isBoolean(compact)) _compact = compact
-        const opts = {
+    getPrintedObject(o, opts: util.InspectOptions = {}): string {
+        const defaults = {
             indentationLvl: 2,
             colors: true,
             depth: 5,
             showHidden: false,
-            compact: _compact,
-            maxArrayLength: 4,
-            maxStringLength: 16,
-            ...(lodash.isPlainObject(compact) && compact),
         }
-        const result = inspect(o, opts)
+        const result = inspect(o, { ...defaults, ...opts })
         return result
     }
 
@@ -73,8 +67,6 @@ export class CommonService {
         options?: Array<string> | ({ ignore?: string[] } & util.InspectOptions)
     ) {
         const result: Record<string, any> = {}
-        const compactableKeys = ['body', 'params', 'query']
-        let shouldCompact = true
         let ignore: string[] = []
         let inspectOpts: util.InspectOptions = {}
 
@@ -89,17 +81,9 @@ export class CommonService {
 
         Object.entries(object).forEach(([k, v]) => {
             if (ignore.includes(k)) return
-
-            const isObj = lodash.isPlainObject(object[k])
-            const objHasMany = isObj && Object.keys(object[k]).length >= 4
-            if (compactableKeys.includes(k) && objHasMany) shouldCompact = false
-
-            // NOTE Why the below 2 lines?
-            // Oh this is for e.g. if no `query`, then do not mention key/value
-            //const str = services.common.getPrintedObject(v)
-            //if (str.length > 2) result[k] = v
+            result[k] = v
         })
-        const printOpts = { compact: shouldCompact, ...inspectOpts }
+        const printOpts = { ...inspectOpts }
         return services.common.getPrintedObject(result, printOpts)
     }
 

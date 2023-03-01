@@ -49,7 +49,7 @@ export class ResourceService {
         }
     }
 
-    isPostmanEntity(item) {
+    isResource(item): item is PostmanCli.Resource | psdk.Collection {
         return (
             services.folder.isFolder(item) ||
             services.item.isItem(item) ||
@@ -70,7 +70,7 @@ export class ResourceService {
         } else if (services.item.isItem(parent)) {
             result = parent.responses
             if (raw) result = result.all()
-        } else if (!this.isPostmanEntity(parent) && Array.isArray(parent.items))
+        } else if (!this.isResource(parent) && Array.isArray(parent.items))
             result = parent.items
 
         return result

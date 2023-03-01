@@ -12,7 +12,7 @@ export namespace PostmanCli.Cmd {
 
 export namespace PostmanCli.Cmd.Opts {
     export type Show = {}
-    export type List = { d: number }
+    export type List = { depth: number }
     export type Run = {}
     export type Move = {
         from: Cmd.VariadicResources
@@ -42,7 +42,7 @@ export namespace PostmanCli {
     }
 
     export type ResponsePrintable = HttpPrintable & {
-        size?: number
+        size: { body: number; header: number; total: number }
         time: number
         code: number
         status: string

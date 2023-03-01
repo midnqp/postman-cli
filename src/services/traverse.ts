@@ -35,7 +35,7 @@ export class TraverseService {
                 nextArr = item.responses.all()
                 nextArrMap[i] = nextArr
             } else if (
-                !services.resource.isPostmanEntity(item) &&
+                !services.resource.isResource(item) &&
                 Array.isArray(item.items)
             ) {
                 nextArr = item.items
@@ -94,7 +94,7 @@ export class TraverseService {
                     currDepth++
                     isdepthinc = true
                 } else if (
-                    !services.resource.isPostmanEntity(item) &&
+                    !services.resource.isResource(item) &&
                     Array.isArray(item?.items)
                 ) {
                     nextArr = item.items

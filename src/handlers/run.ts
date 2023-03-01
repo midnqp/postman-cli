@@ -9,6 +9,7 @@ export default async function (
 ) {
     const [optional, cmd] = _cmd
     const variables = services.cmdopts.getOptVariables(cmd)
+    const globalHeaders = services.cmdopts.getOptHeaders(cmd)
     const co = await services.cmdopts.getOptCollection(cmd)
     co.syncVariablesFrom(variables)
 
@@ -18,28 +19,38 @@ export default async function (
         return
     }
     let runnable: any = resource
-    const restoreOrigReq: any = {
-        changed: false,
-        req: undefined,
-        prevreqdata: undefined,
-    }
+    const restoreOrigReq: {
+        changed: boolean
+        req?: any
+        headers?: psdk.HeaderList
+        prevreq?: any
+        prevheaders: any[]
+    } = { changed: false, prevheaders: [] }
 
     if (services.response.isResponse(resource)) {
-        const tmp = resource.parent()
-        if (tmp) {
-            const item = tmp as psdk.Item
+        const runnableParent = resource.parent()
+        if (runnableParent) {
+            const item = runnableParent as psdk.Item
             const exampledata = resource?.originalRequest?.body?.raw || ''
 
-            let prevreqdata
+            let prevreqdata: any
+            let prevheaderdata: psdk.Header[] = []
             if (item?.request?.body?.raw) {
                 prevreqdata = item.request.body.raw
                 item.request.body.raw = exampledata
+            }
+            if (globalHeaders.length) {
+                const all = item.request.headers.all()
+                prevheaderdata = all
+                globalHeaders.forEach(e => item.request.headers.upsert(e))
             }
             runnable = item
 
             restoreOrigReq.changed = true
             restoreOrigReq.req = item?.request?.body
-            restoreOrigReq.prevreqdata = prevreqdata
+            restoreOrigReq.headers = item.request.headers
+            restoreOrigReq.prevreq = prevreqdata
+            restoreOrigReq.prevheaders = prevheaderdata
         }
     }
 
@@ -66,14 +77,20 @@ export default async function (
             if (!resource) return
             services.logger.error(fail.error.message)
 
-            if (services.request.isRequest(resource))
-                services.request.print(resource)
-            else services.logger.warn(resource.name + ' not printed')
+            if (services.resource.isResource(resource))
+                services.resource.print(resource)
+            else services.logger.warn('resource could not be printed')
         })
     } catch (err: any) {
         services.logger.error(err.message)
     }
 
-    if (restoreOrigReq.changed)
-        restoreOrigReq.req.raw = restoreOrigReq.prevreqdata
+    if (restoreOrigReq.changed) {
+        restoreOrigReq.req.raw = restoreOrigReq.prevreq
+
+        restoreOrigReq.prevheaders.forEach(h => {
+            const { headers } = restoreOrigReq
+            headers && headers.upsert(h)
+        })
+    }
 }

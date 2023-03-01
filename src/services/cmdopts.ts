@@ -73,7 +73,6 @@ export class CmdOptsService {
             const value: string | any = v
             return new psdk.Header({ key: k, value, system: true })
         })
-        console.log(result)
         return result
     }
 }

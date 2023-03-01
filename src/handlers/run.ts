@@ -68,8 +68,9 @@ export default async function (
             const item = _item as any
             if (!item || !response) return
 
-            services.request.print(item)
-            services.response.print(response)
+            services.resource.print(item)
+            services.logger.out('')
+            services.resource.print(response)
         })
 
         fails.forEach(fail => {

@@ -41,7 +41,10 @@ export namespace PostmanCli {
         body: unknown
     }
 
-    export type ResponsePrintable = HttpPrintable & {
+    export type ResponsePrintable = {
+        url: { path: string; method: string }
+        headers: Record<string, unknown>
+        body: unknown
         size: { body: number; header: number; total: number }
         time: number
         code: number

@@ -36,10 +36,10 @@ export class ResponseService {
         let $parsedBody: any
         let rawBody: any
 
-        if (!r.originalRequest) throw Error('request not found in response')
-        const request = services.request.toPrintable(r.originalRequest)
+        //if (!r.originalRequest) throw Error('request not found in response')
 
-        if (r.originalRequest.body) {
+        if (r?.originalRequest?.body) {
+            // cmd-show
             const body = r.originalRequest?.body
             const mode = body.mode
             type ResponseLang = 'json' | 'text' | undefined
@@ -55,10 +55,20 @@ export class ResponseService {
                 $parsedBody = r.text()
                 $parseHint = 'text'
             }
+        } else if (headers['content-type'] && r.stream) {
+            // cmd-run
+            const { type } = contentType.parse(headers['content-type'])
+            if (type.includes('json')) {
+                $parseHint = 'json'
+                $parsedBody = JSON.parse(r.stream.toString())
+            } else if (type.includes('text')) {
+                $parseHint = 'text'
+                $parsedBody = r.stream.toString()
+            }
         }
 
         return {
-            ...request,
+            url: { method: 'method', path: 'url' },
             headers,
             body: rawBody,
             $parsedBody,

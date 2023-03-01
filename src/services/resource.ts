@@ -14,8 +14,15 @@ export class ResourceService {
         }
     }
 
-    setParent(collection: psdk.Collection, newParent, item) {
-        const oldParent = item.parent()
+    setParent(item: PostmanCli.Resource, newParent) {
+        if (services.collection.isCollection(item)) {
+            services.logger.warn('cannot move collection to a new parent')
+            return
+        }
+
+        const oldParent: any = item.parent()
+        if (!oldParent)
+            throw Error('parent of resource "' + item.name + '" not found')
 
         let refAdd, refRemove
         if (
@@ -30,11 +37,12 @@ export class ResourceService {
             services.collection.isCollection(oldParent)
         )
             refRemove = oldParent.items
-        else refRemove = oldParent.responses
+        else if (services.item.isItem(oldParent))
+            refRemove = oldParent.responses
 
         const isSameParent = oldParent.id == newParent.id
-        const isSameName = item.name == item.name // TODO something sneaky wrong here
-        if (!isSameName) item.name = item.name
+        const isSameName = oldParent.name == newParent.name
+        if (!isSameName) item.name = newParent.name
         if (!isSameParent) {
             refAdd.add(item)
             refRemove.remove(item.id)
@@ -83,15 +91,19 @@ export class ResourceService {
      * postman example -> psdk.Response
      * postman request -> psdk.Item
      */
-    getType(resource: PostmanCli.Resource): PostmanCli.ResourceNames {
-        if (services.folder.isFolder(resource)) return 'folder'
+    getType(
+        resource: PostmanCli.Resource
+    ): PostmanCli.ResourceNames | 'collection' {
+        if (services.collection.isCollection(resource)) return 'collection'
+        else if (services.folder.isFolder(resource)) return 'folder'
         else if (services.item.isItem(resource)) return 'request'
         else return 'example'
     }
 
-    getIcon(resource: PostmanCli.Resource): string {
+    getIcon(resource: PostmanCli.Resource | psdk.Collection): string {
         const type = this.getType(resource)
-        const icons: Record<PostmanCli.ResourceNames, string> = {
+        const icons: Record<PostmanCli.ResourceNames | 'collection', string> = {
+            collection: services.collection.getIcon(),
             folder: services.folder.getIcon(),
             request: services.request.getIcon(),
             example: services.response.getIcon(),

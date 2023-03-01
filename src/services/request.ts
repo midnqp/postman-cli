@@ -8,7 +8,7 @@ export class RequestService {
         return psdk.Request.isRequest(value)
     }
     getIcon() {
-        return chalk.italic(' REQ ')
+        return chalk.italic.magenta(' req ')
     }
 
     getMethodIcon(method: string): string {

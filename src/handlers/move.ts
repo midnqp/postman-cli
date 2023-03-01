@@ -18,7 +18,7 @@ export default async function (
         return
     }
     let resourceTo: PostmanCli.Resource | psdk.Collection | Error
-    if (args.to.length == 1 && args.to[0] == 'collection') resourceTo = co
+    if (args.to.length == 1 && args.to[0] == co.name) resourceTo = co
     else {
         resourceTo = services.common.getNestedResource(co, args.to)
         if (services.common._.isError(resourceTo)) {
@@ -27,7 +27,7 @@ export default async function (
         }
     }
 
-    services.resource.setParent(co, resourceTo, resourceFrom)
+    services.resource.setParent(resourceFrom, resourceTo)
     services.resource.printOutline([co])
     services.collection.saveChanges(cmd, co)
 }

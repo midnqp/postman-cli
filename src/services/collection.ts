@@ -32,7 +32,7 @@ export class CollectionService {
     }
 
     getIcon() {
-        return chalk.italic(' COL ')
+        return chalk.italic.magenta(' col ')
     }
 }
 

@@ -8,8 +8,8 @@
 		"start": "ts-node-esm src/index.ts",
 		"dev": "tsc-watch --noClear -p tsconfig.json",
 		"prepack:webpack": "npx webpack --config webpack.config.cjs",
-		"prepack:pkg:all": "npx pkg --options '--no-warnings' -t node18-linux-x64,node18-macos-x64,node18-win-x64 ./dist/bundle.cjs -o ./bin/pcli",
-		"prepack:pkg": "npx pkg --options '--no-warnings' -t node18 ./dist/bundle.cjs -o ./bin/pcli",
+		"prepack:pkg:all": "npx pkg --options 'no-warnings' -t node18-linux-x64,node18-macos-x64,node18-win-x64 ./dist/bundle.cjs -o ./bin/pcli",
+		"prepack:pkg": "npx pkg --options 'no-warnings' -t node18 ./dist/bundle.cjs -o ./bin/pcli",
 		"prepack:esbuild:cjs": "npx esbuild dist/src/index.js  --bundle --outfile=dist/bundle.cjs --format=cjs --platform=node",
 		"prepack:esbuild:esm": "npx esbuild dist/src/index.js  --bundle --outfile=dist/bundle.mjs --format=esm --platform=node --banner:js=\"import {createRequire} from 'module'; const require = createRequire(import.meta.url); import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\""
 	},

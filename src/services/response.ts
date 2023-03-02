@@ -3,6 +3,7 @@ import contentType from 'content-type'
 import psdk from 'postman-collection'
 import services from '@src/services/index.js'
 import { PostmanCli } from '@src/types'
+import {method} from 'lodash'
 
 export class ResponseService {
     isResponse(value): value is psdk.Response {
@@ -70,7 +71,10 @@ export class ResponseService {
         }
 
         return {
-            url: { method: 'method', path: 'url' },
+				url: { 
+					method: r?.originalRequest?.method||'', 
+					path: r?.originalRequest?.url.getPath() ||'' 
+				},
             headers,
             body: rawBody,
             $parsedBody,

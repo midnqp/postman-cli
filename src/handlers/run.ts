@@ -34,15 +34,9 @@ export default async function (
             const exampledata = resource?.originalRequest?.body?.raw || ''
 
             let prevreqdata: any
-            let prevheaderdata: psdk.Header[] = []
             if (item?.request?.body?.raw) {
                 prevreqdata = item.request.body.raw
                 item.request.body.raw = exampledata
-            }
-            if (globalHeaders.length) {
-                const all = item.request.headers.all()
-                prevheaderdata = all
-                globalHeaders.forEach(e => item.request.headers.upsert(e))
             }
             runnable = item
 
@@ -50,6 +44,13 @@ export default async function (
             restoreOrigReq.req = item?.request?.body
             restoreOrigReq.headers = item.request.headers
             restoreOrigReq.prevreq = prevreqdata
+        }
+    } else if (services.item.isItem(resource)) {
+        let prevheaderdata: psdk.Header[] = []
+        if (globalHeaders.length) {
+            const all = runnable.request.headers.all()
+            prevheaderdata = all
+            globalHeaders.forEach(e => runnable.request.headers.upsert(e))
             restoreOrigReq.prevheaders = prevheaderdata
         }
     }

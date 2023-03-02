@@ -55,11 +55,11 @@ export class RequestService {
                 headersJson[h.key] = h.value
             })
 
-            result['global-headers'] = headersJson
+            result['global:headers'] = headersJson
         }
         if (opts.includeGlobalVariables && opts.variables) {
             const variables = opts.variables
-            result['global-variables'] = variables
+            result['global:variables'] = variables
         }
 
         return result

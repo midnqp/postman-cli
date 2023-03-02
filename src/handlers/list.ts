@@ -10,6 +10,11 @@ export default async function (
     const [optional, cmd] = _cmd
     args = args.map(e => e.toLowerCase())
     const co = await services.cmdopts.getOptCollection(cmd)
+    if (services.common._.isError(co)) {
+        services.logger.error(co.message)
+        return
+    }
+
     let parent: [psdk.Collection] | [PostmanCli.Resource] = [co]
 
     if (args.length) {

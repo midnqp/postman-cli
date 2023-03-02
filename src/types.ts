@@ -30,6 +30,8 @@ export namespace PostmanCli {
 
     export type Requestable = psdk.Request | psdk.Item | psdk.Response
 
+    export type Containable = psdk.Collection | psdk.ItemGroup<any> | psdk.Item
+
     export type HttpPrintable = {
         headers: Record<string, unknown>
         params: Record<string, unknown>
@@ -39,8 +41,8 @@ export namespace PostmanCli {
             method: string
         }
         body: unknown
-        'global-headers'?: Record<string, string>
-        'global-variables'?: Record<string, string | number>
+        'global:headers'?: Record<string, string>
+        'global:variables'?: Record<string, string | number>
     }
 
     export type ResponsePrintable = {

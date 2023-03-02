@@ -103,7 +103,7 @@ export class CommonService {
      */
     getNestedResource(parent, args: string[]): PostmanCli.Resource | Error {
         if (args[0] == parent.name) {
-            const children = services.resource.getChildren(parent)
+            const children = services.resource.getChildrenRaw(parent)
             const found = children.find(child => {
                 const c = child.name.toLowerCase()
                 const p = parent.name.toLowerCase()

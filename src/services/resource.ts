@@ -66,6 +66,14 @@ export class ResourceService {
         )
     }
 
+    isContainable(resource): resource is PostmanCli.Containable {
+        return (
+            services.folder.isFolder(resource) ||
+            services.item.isItem(resource) ||
+            services.collection.isCollection(resource)
+        )
+    }
+
     getChildrenRaw(parent: PostmanCli.Containable) {
         const isColl = services.collection.isCollection(parent)
         const isFolder = services.folder.isFolder(parent)

@@ -8,6 +8,10 @@ export default async function (
 ) {
     const [optional, cmd] = _cmd
     const co = await services.cmdopts.getOptCollection(cmd)
+    if (services.common._.isError(co)) {
+        services.logger.error(co.message)
+        return
+    }
 
     const item = services.common.getNestedResource(co, args)
     if (services.common._.isError(item)) {
@@ -16,5 +20,10 @@ export default async function (
     }
     item.name = optional.name
     services.resource.printOutline([item?.parent() || co])
-    services.collection.saveChanges(cmd, co)
+
+    const saved = await services.collection.save(cmd, co)
+    if (services.common._.isError(saved)) {
+        services.logger.error(saved.message)
+        return
+    }
 }

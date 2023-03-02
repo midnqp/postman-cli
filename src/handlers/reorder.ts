@@ -8,7 +8,13 @@ export default async function (
     ..._cmd: [PostmanCli.Cmd.Opts.Reorder, commander.Command]
 ) {
     const [optional, cmd] = _cmd
+
     const co = await services.cmdopts.getOptCollection(cmd)
+    if (services.common._.isError(co)) {
+        services.logger.error(co.message)
+        return
+    }
+
     const resource = services.common.getNestedResource(co, args)
     if (services.common._.isError(resource)) {
         services.logger.error(resource.message)
@@ -16,11 +22,13 @@ export default async function (
     }
     let optsIdx = parseInt(optional.index)
 
-    const parent = resource.parent()
-    const children: psdk.PropertyList<any> = services.resource.getChildren(
-        parent,
-        false
-    )
+    const parent = resource.parent() as PostmanCli.Containable
+    if (!parent) {
+        services.logger.error('parent not found for ' + resource.name)
+        return
+    }
+
+    const children = services.resource.getChildren(parent)
     const length = children.count()
     optsIdx = optsIdx - 1 // it was 1-based index
     if (optsIdx >= length - 1) optsIdx = length - 1
@@ -30,7 +38,13 @@ export default async function (
         const resIdx = children.indexOf(resource.id)
         // @ts-ignore
         services.common.arrayMove(children.members, resIdx, optsIdx)
-        await services.collection.saveChanges(cmd, co)
-    }
-    services.resource.printOutline([parent])
+
+        services.resource.printOutline([parent])
+
+        const saved = await services.collection.save(cmd, co)
+        if (services.common._.isError(saved)) {
+            services.logger.error(saved.message)
+            return
+        }
+    } else services.resource.printOutline([parent])
 }

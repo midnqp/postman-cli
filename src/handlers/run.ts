@@ -10,7 +10,13 @@ export default async function (
     const [optional, cmd] = _cmd
     const globalVariables = services.cmdopts.getOptVariables(cmd)
     const globalHeaders = services.cmdopts.getOptHeaders(cmd)
+
     const co = await services.cmdopts.getOptCollection(cmd)
+    if (services.common._.isError(co)) {
+        services.logger.error(co.message)
+        return
+    }
+
     co.syncVariablesFrom(globalVariables)
 
     const resource = services.common.getNestedResource(co, args)

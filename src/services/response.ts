@@ -14,6 +14,8 @@ export class ResponseService {
     }
 
     getCodeIcon(code: number, status: string) {
+        if (!code || !status) return ''
+
         let color = chalk
         switch (code.toString()[0]) {
             case '2':
@@ -81,7 +83,7 @@ export class ResponseService {
     }
 
     getPrintString(r: PostmanCli.ResponsePrintable): string {
-        const rr = Object.assign({}, r)
+        const rr = r
         let result = this.getCodeIcon(rr.code, rr.status)
 
         if (rr.$parseHint && ['json', 'text'].includes(rr.$parseHint)) {

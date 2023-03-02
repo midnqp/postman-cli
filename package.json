@@ -2,18 +2,20 @@
 	"name": "pcli",
 	"type": "module",
 	"scripts": {
-		"build": "tsc -p tsconfig.json",
-		"build:bin": "npm run build; npm run prepack:webpack; npm run prepack:pkg;",
+		"build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+		"build:bin": "npm run build; npm run prepack:esbuild:cjs; npm run prepack:pkg;",
+		"build:bin:all": "npm run build; npm run prepack:esbuild:cjs; npm run prepack:pkg:all;",
 		"start": "ts-node-esm src/index.ts",
 		"dev": "tsc-watch --noClear -p tsconfig.json",
-		"prepack:babel": "npx babel dist/src -d dist/babel",
 		"prepack:webpack": "npx webpack --config webpack.config.cjs",
-		"prepack:pkg:all": "npx pkg --options '--no-warnings' -t node18-linux-x64,node18-macos-x64,node18-win-x64 ./dist/webpack/main.js --out-path ./bin -C Brotli",
-		"prepack:pkg": "npx pkg --options '--no-warnings' -t node18 ./dist/webpack/main.js --out-path ./bin -C Brotli",
-		"prepack:esbuild": "npx esbuild dist/src/index.js  --bundle --outfile=dist/index.build.js --format=esm --platform=node --banner:js=\"import {createRequire} from 'module'; const require = createRequire(import.meta.url); import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\""
+		"prepack:pkg:all": "npx pkg --options '--no-warnings' -t node18-linux-x64,node18-macos-x64,node18-win-x64 ./dist/bundle.cjs -o ./bin/pcli -C Brotli",
+		"prepack:pkg": "npx pkg --options '--no-warnings' -t node18 ./dist/bundle.cjs -o ./bin/pcli -C Brotli",
+		"prepack:esbuild:cjs": "npx esbuild dist/src/index.js  --bundle --outfile=dist/bundle.cjs --format=cjs --platform=node",
+		"prepack:esbuild:esm": "npx esbuild dist/src/index.js  --bundle --outfile=dist/bundle.mjs --format=esm --platform=node --banner:js=\"import {createRequire} from 'module'; const require = createRequire(import.meta.url); import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\""
 	},
 	"dependencies": {
 		"axios": "^0.27.2",
+		"browserify": "^17.0.0",
 		"chai": "^4.3.7",
 		"chalk": "^5.2.0",
 		"commander": "^9.4.0",
@@ -38,10 +40,17 @@
 		"@types/newman": "^5.3.1",
 		"@types/postman-collection": "^3.5.7",
 		"@types/uuid": "^9.0.0",
+		"@typescript-eslint/eslint-plugin": "^5.51.0",
+		"@typescript-eslint/parser": "^5.51.0",
+		"eslint": "^8.33.0",
 		"express": "^4.18.2",
 		"pkg": "^5.8.0",
+		"tsc-alias": "^1.8.2",
 		"tsc-watch": "^5.0.3",
 		"typescript": "^4.7.4",
 		"webpack": "^5.74.0"
-	}
+	},
+	"bundleDependencies": [
+		"browserify"
+	]
 }

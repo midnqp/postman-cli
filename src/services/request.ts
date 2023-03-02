@@ -34,8 +34,11 @@ export class RequestService {
         return color(method.toLowerCase())
     }
 
-    toPrintable(r: psdk.Request): PostmanCli.HttpPrintable {
-        return {
+    toPrintable(
+        r: psdk.Request,
+        opts: ToPrintableOpts = {}
+    ): PostmanCli.HttpPrintable {
+        const result: PostmanCli.HttpPrintable = {
             params: r.url.variables.toObject(),
             query: r.url.query.toObject(),
             body: JSON.parse(r.body?.raw || '{}'),
@@ -45,23 +48,63 @@ export class RequestService {
             },
             headers: r.headers.toObject(),
         }
-    }
+        if (opts.includeGlobalHeaders && opts.headers) {
+            const headers = opts.headers
+            const headersJson = {}
+            headers.forEach(h => {
+                headersJson[h.key] = h.value
+            })
 
-    getPrintString(printable: PostmanCli.HttpPrintable): string {
-        let result =
-            '\n' +
-            this.getMethodIcon(printable.url.method) +
-            ' ' +
-            printable.url.path
-        result += '\n' + services.common.getFormattedObject(printable, ['url'])
+            result['global-headers'] = headersJson
+        }
+        if (opts.includeGlobalVariables && opts.variables) {
+            const variables = opts.variables
+            result['global-variables'] = variables
+        }
+
         return result
     }
 
-    print(r: psdk.Request) {
-        const printable = this.toPrintable(r)
-        const printString = this.getPrintString(printable)
+    getPrintString(
+        printable: PostmanCli.HttpPrintable,
+        opts: GetPrintStringOpts = {}
+    ): string {
+        const icon = this.getMethodIcon(printable.url.method)
+        const path = printable.url.path
+        const obj = services.common.getFormattedObject(printable, ['url'])
+
+        let result = '\n' + icon + ' ' + path
+        result += '\n' + obj
+        return result
+    }
+
+    print(r: psdk.Request, opts: PrintOpts = {}) {
+        const printable = this.toPrintable(r, {
+            ...(opts.printableOpts && opts.printableOpts),
+        })
+        const printString = this.getPrintString(printable, {
+            ...(opts.printStringOpts && opts.printStringOpts),
+        })
         services.logger.out(printString)
     }
+
+    declare ToPrintableOpts: ToPrintableOpts
+    declare GetPrintStringOpts: GetPrintStringOpts
+    declare PrintOpts: PrintOpts
+}
+
+type ToPrintableOpts = {
+    includeGlobalHeaders?: boolean
+    includeGlobalVariables?: boolean
+    headers?: psdk.Header[]
+    variables?: Record<string, string | number>
+}
+
+type GetPrintStringOpts = {}
+
+type PrintOpts = {
+    printableOpts?: ToPrintableOpts
+    printStringOpts?: GetPrintStringOpts
 }
 
 export default new RequestService()

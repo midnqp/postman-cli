@@ -8,10 +8,10 @@ export default async function (
     ..._cmd: [PostmanCli.Cmd.Opts.List, commander.Command]
 ) {
     const [optional, cmd] = _cmd
-    const variables = services.cmdopts.getOptVariables(cmd)
+    const globalVariables = services.cmdopts.getOptVariables(cmd)
     const globalHeaders = services.cmdopts.getOptHeaders(cmd)
     const co = await services.cmdopts.getOptCollection(cmd)
-    co.syncVariablesFrom(variables)
+    co.syncVariablesFrom(globalVariables)
 
     const resource = services.common.getNestedResource(co, args)
     if (services.common._.isError(resource)) {
@@ -69,7 +69,18 @@ export default async function (
             const item = _item as any
             if (!item || !response) return
 
-            services.resource.print(item)
+            if (services.item.isItem(item)) {
+                const opts: typeof services.request.PrintOpts = {
+                    printableOpts: {
+                        includeGlobalHeaders: true,
+                        includeGlobalVariables: true,
+                        headers: globalHeaders,
+                        variables: globalVariables,
+                    },
+                }
+                services.request.print(item.request, opts)
+            } else if (services.resource.isResource(item))
+                services.resource.print(item)
             services.logger.out('')
             services.resource.print(response)
         })

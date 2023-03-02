@@ -39,6 +39,8 @@ export namespace PostmanCli {
             method: string
         }
         body: unknown
+        'global-headers'?: Record<string, string>
+        'global-variables'?: Record<string, string | number>
     }
 
     export type ResponsePrintable = {

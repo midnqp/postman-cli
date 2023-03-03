@@ -127,7 +127,7 @@ $ pcli -c collection.json reorder users list --index 1
 ```
 
 #### Run
-This command runs a HTTP request or example. Usually postman variables e.g. `{{baseURL}}` or `{{auth-token}}` are used in headers or URLs. Values for them can be provided through the `--variables` option. Make sure you have an active backend server to process a HTTP request and provide a response. For the purposes of this demo, a simple static backend server is provided in `test/express.ts`, which you can run by `npm run test:backend`.
+This command runs a HTTP request or example. Usually postman variables e.g. `{{baseURL}}` or `{{auth-token}}` are used in headers or URLs. Values for them can be provided through the `--variables` option. Make sure you have an active backend server to process a HTTP request and provide a response. For the purposes of this demo, a simple static backend server is provided in `test/server.ts`, which you can run by `npm run test:backend`.
 
 ```
 $ pcli -c collection.json run users register muadh

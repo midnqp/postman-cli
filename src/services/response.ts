@@ -3,7 +3,6 @@ import contentType from 'content-type'
 import psdk from 'postman-collection'
 import services from '@src/services/index.js'
 import { PostmanCli } from '@src/types'
-import {method} from 'lodash'
 
 export class ResponseService {
     isResponse(value): value is psdk.Response {
@@ -38,6 +37,8 @@ export class ResponseService {
         let $parseHint: PostmanCli.ResponsePrintable['$parseHint']
         let $parsedBody: any
         let rawBody: any
+        let urlMethod = ''
+        let urlPath = ''
 
         //if (!r.originalRequest) throw Error('request not found in response')
 
@@ -58,6 +59,9 @@ export class ResponseService {
                 $parsedBody = r.text()
                 $parseHint = 'text'
             }
+
+            urlMethod = r?.originalRequest?.method || ''
+            urlPath = r?.originalRequest?.url.getPath() || ''
         } else if (headers['content-type'] && r.stream) {
             // cmd-run
             const { type } = contentType.parse(headers['content-type'])
@@ -71,10 +75,10 @@ export class ResponseService {
         }
 
         return {
-				url: { 
-					method: r?.originalRequest?.method||'', 
-					path: r?.originalRequest?.url.getPath() ||'' 
-				},
+            url: {
+                method: urlMethod,
+                path: urlPath,
+            },
             headers,
             body: rawBody,
             $parsedBody,
@@ -94,6 +98,8 @@ export class ResponseService {
             rr.body = rr.$parsedBody
         }
         const opts = ['$parseHint', '$parsedBody', 'code', 'status']
+        if (!r.url.method || !r.url.path) opts.push('url') // in cmd-run
+
         result += '\n' + services.common.getFormattedObject(rr, opts)
 
         return result

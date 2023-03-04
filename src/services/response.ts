@@ -1,4 +1,5 @@
 import chalk from 'chalk'
+import prettyBytes from 'pretty-bytes'
 import contentType from 'content-type'
 import psdk from 'postman-collection'
 import services from '@src/services/index.js'
@@ -92,16 +93,20 @@ export class ResponseService {
 
     getPrintString(r: PostmanCli.ResponsePrintable): string {
         const rr = r
-        let result = this.getCodeIcon(rr.code, rr.status)
 
         if (rr.$parseHint && ['json', 'text'].includes(rr.$parseHint)) {
             rr.body = rr.$parsedBody
         }
-        const opts = ['$parseHint', '$parsedBody', 'code', 'status']
+        const opts = ['$parseHint', '$parsedBody', 'code', 'status', 'size']
         if (!r.url.method || !r.url.path) opts.push('url') // in cmd-run
 
+        let result = this.getCodeIcon(rr.code, rr.status)
+        result += '    ' + prettyBytes(rr.size.total)
+        if (r.time) {
+            result += '    ' + r.time + ' ms'
+            opts.push('time')
+        }
         result += '\n' + services.common.getFormattedObject(rr, opts)
-
         return result
     }
 

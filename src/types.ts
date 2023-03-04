@@ -50,7 +50,7 @@ export namespace PostmanCli {
         headers: Record<string, unknown>
         body: unknown
         size: { body: number; header: number; total: number }
-        time: number
+        time?: number
         code: number
         status: string
         $parsedBody?: unknown

@@ -21,6 +21,7 @@ export namespace PostmanCli.Cmd.Opts {
     export type Rename = { name: string }
     export type Delete = { index: number }
     export type Reorder = { index: string }
+    export type Update = {}
 }
 
 export namespace PostmanCli {
@@ -54,6 +55,18 @@ export namespace PostmanCli {
         code: number
         status: string
         $parsedBody?: unknown
-        $parseHint?: 'text' | 'json' | 'formdata' | 'wav' | 'png'
+        $parseHint?: ResponseParseHint
     }
+
+    export type ResponseParseHint =
+        | 'text'
+        | 'json'
+        | 'formdata'
+        | 'wav'
+        | 'png'
+        | 'raw'
+        | 'graphql'
+        | 'none'
+
+    export type ResponseLang = 'text' | 'json'
 }

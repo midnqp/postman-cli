@@ -19,7 +19,7 @@ export default async function (
 
     co.syncVariablesFrom(globalVariables)
 
-    const resource = services.common.getNestedResource(co, args)
+    const resource = services.resource.getFromNested(co, args)
     if (services.common._.isError(resource)) {
         services.logger.error(resource.message)
         return

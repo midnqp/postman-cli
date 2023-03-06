@@ -4,6 +4,7 @@ import contentType from 'content-type'
 import psdk from 'postman-collection'
 import services from '@src/services/index.js'
 import { PostmanCli } from '@src/types'
+import enquirer from 'enquirer'
 
 export class ResponseService {
     isResponse(value): value is psdk.Response {
@@ -33,9 +34,58 @@ export class ResponseService {
         return color(code + ' ' + status)
     }
 
+    /**
+     * recursively prepared nested Enquirer choices, if
+     * json has nested objects.
+     */
+    toFormChoices(json, { result, parentName }: any): void {
+        if (!parentName) parentName = ''
+
+        if (services.common._.isPlainObject(json)) {
+            Object.entries(json).forEach(([k, v]) => {
+                if (services.common._.isPlainObject(v)) {
+                    const nestedItem = {
+                        name: k,
+                        message: k,
+                        type: 'form',
+                        choices: [],
+                    }
+                    result.push(nestedItem)
+                    return this.toFormChoices(v, {
+                        parentName: k,
+                        result: nestedItem.choices,
+                    })
+                }
+                const sep = '⁣'
+                const item = {
+                    name: parentName ? parentName + sep + k : k,
+                    message: k,
+                    initial: v,
+                }
+                result.push(item)
+            })
+        }
+    }
+
+    /**
+     * Transforms response body to
+     */
+    toEnquirerForm(r: psdk.Response): Error | any[] {
+        const result: any[] = []
+
+        const body = r?.originalRequest?.body
+        if (!body || !r.originalRequest) return result
+
+        const json = services.request.toJsonBody(r.originalRequest)
+        if (services.common._.isError(json)) return json
+
+        this.toFormChoices(json, { result })
+        return result
+    }
+
     toPrintable(r: psdk.Response): PostmanCli.ResponsePrintable {
         const headers = r.headers.toObject()
-        let $parseHint: PostmanCli.ResponsePrintable['$parseHint']
+        let $parseHint: PostmanCli.ResponseParseHint = 'text'
         let $parsedBody: any
         let rawBody: any
         let urlMethod = ''
@@ -46,10 +96,10 @@ export class ResponseService {
         if (r?.originalRequest?.body) {
             // cmd-show
             const body = r.originalRequest?.body
-            const mode = body.mode
-            type ResponseLang = 'json' | 'text' | undefined
+            const mode = <PostmanCli.ResponseParseHint>body.mode
+            let lang: PostmanCli.ResponseLang
             // @ts-ignore
-            const lang: ResponseLang = body.options[mode]?.language
+            lang = body.options[mode]?.language
             const raw = body[mode]
             rawBody = raw
 

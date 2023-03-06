@@ -13,7 +13,7 @@ export default async function (
         return
     }
 
-    const item = services.common.getNestedResource(co, args)
+    const item = services.resource.getFromNested(co, args)
     if (services.common._.isError(item)) {
         services.logger.error(item.message)
         return

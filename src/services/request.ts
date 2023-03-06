@@ -11,6 +11,29 @@ export class RequestService {
         return chalk.italic.magenta(' req ')
     }
 
+    getBodyHint(req: psdk.Request): PostmanCli.ResponseParseHint {
+        const body = req.body
+        if (!body) return 'none'
+
+        const mode = <PostmanCli.ResponseParseHint>body.mode
+        // @ts-ignore
+        const lang = body.options[mode]?.language
+
+        if (lang) return lang
+        return mode
+    }
+
+    /**
+     * Parses any request body, and returns as JSON.
+     */
+    toJsonBody(req: psdk.Request): Record<string, any> | string | Error {
+        const hint = this.getBodyHint(req)
+
+        if (hint == 'json') return JSON.parse(req?.body?.raw || '{}')
+        else if (hint == 'text') return req?.body?.raw || ''
+        return Error('could not parse request body')
+    }
+
     getMethodIcon(method: string): string {
         method = method.toUpperCase()
         let color = chalk

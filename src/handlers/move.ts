@@ -16,7 +16,7 @@ export default async function (
         return
     }
 
-    const resourceFrom = services.common.getNestedResource(co, args.from)
+    const resourceFrom = services.resource.getFromNested(co, args.from)
     if (services.common._.isError(resourceFrom)) {
         services.logger.error(resourceFrom.message)
         return
@@ -24,7 +24,7 @@ export default async function (
     let resourceTo: PostmanCli.Resource | PostmanCli.Containable | Error
     if (args.to.length == 1 && args.to[0] == co.name) resourceTo = co
     else {
-        resourceTo = services.common.getNestedResource(co, args.to)
+        resourceTo = services.resource.getFromNested(co, args.to)
         if (services.common._.isError(resourceTo)) {
             services.logger.error(resourceTo.message)
             return

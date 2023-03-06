@@ -14,11 +14,12 @@ export default async function (
         services.logger.error(co.message)
         return
     }
+    const optDepth = optional.depth
 
     let parent: [psdk.Collection] | [PostmanCli.Resource] = [co]
 
     if (args.length) {
-        const res = services.common.getNestedResource(co, args)
+        const res = services.resource.getFromNested(co, args)
         if (services.common._.isError(res)) {
             services.logger.error(res.message)
             return
@@ -26,5 +27,5 @@ export default async function (
         parent = [res]
     }
 
-    services.resource.printOutline(parent, { d: optional.depth })
+    services.resource.printOutline(parent, { d: optDepth })
 }

@@ -53,4 +53,9 @@ program
     .requiredOption('--index <number>', 'new 1-based index')
     .action(Handlers.reorder)
 
+program
+    .command('update <resources...>')
+    .description('update a resource details')
+    .action(Handlers.update)
+
 program.parse()

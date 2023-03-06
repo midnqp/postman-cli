@@ -16,7 +16,7 @@ export class CmdOptsService {
     }
 
     #isCollectionId(id: string) {
-        // sometimes id begins with an integer
+        // id may begin with an integer
         const firstPart: string = id.split('-')[0]
         const num = Number(firstPart)
         if (Number.isInteger(num)) id = id.slice(firstPart.length + 1)

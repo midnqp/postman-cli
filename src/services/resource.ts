@@ -74,6 +74,69 @@ export class ResourceService {
         )
     }
 
+    /**
+     * Goes deep recursively and finds a nested
+     * resource. The most efficient to get a resource from args[].
+     *
+     * @param parent A collection.
+     * @param args variadic names/id/index of nested resources
+     *
+     */
+    getFromNested(parent, args: string[]): PostmanCli.Resource | Error {
+        if (args[0] == parent.name) {
+            const children = services.resource.getChildrenRaw(parent)
+            const found = children.find(child => {
+                const c = child.name.toLowerCase()
+                const p = parent.name.toLowerCase()
+                return c == p
+            })
+            // it refers to parent itself, and only item
+            if (!found && args.length == 1) return parent
+            // probably it refers to the parent itself
+            if (!found) args.splice(0, 1)
+        }
+
+        let nextiter = parent.items
+        let currDepth = 0
+        const maxDepth = args.length
+        const getNext = (name: string, parentIter) => {
+            if (!parentIter.find) return // commentable?? TODO
+            return parentIter.find(
+                child => child.name.toLowerCase() === name,
+                {}
+            )
+        }
+        const nextName = () => args[currDepth]
+        // additionally increments currDepth
+        const isLast = () => ++currDepth === maxDepth
+        let tmp
+        const founditems: any = []
+
+        while (currDepth < maxDepth) {
+            const name = nextName()
+            tmp = getNext(name, nextiter)
+            if (!tmp) {
+                const resname = founditems.at(-1)?.name || parent.name
+                const msg = `"${name}" not found inside "${resname}".`
+                return Error(msg)
+            }
+
+            if (services.folder.isFolder(tmp)) {
+                if (isLast()) return tmp
+                founditems.push(tmp)
+                nextiter = tmp.items
+            } else if (services.item.isItem(tmp)) {
+                if (isLast()) return tmp
+                founditems.push(tmp)
+                nextiter = (tmp.responses as any).members
+            } else if (services.response.isResponse(tmp)) {
+                founditems.push(tmp)
+                return tmp
+            } else return Error(`Found unknown instance "${name}".`)
+        }
+        return nextiter
+    }
+
     getChildrenRaw(parent: PostmanCli.Containable) {
         const isColl = services.collection.isCollection(parent)
         const isFolder = services.folder.isFolder(parent)

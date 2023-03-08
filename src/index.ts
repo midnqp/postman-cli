@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import Handlers from '@src/handlers/index.js'
-import services from './services'
+import services from '@src/services/index.js'
 
 const program = new Command()
 program
@@ -66,7 +66,7 @@ try {
 }
 
 function catchE(fn) {
-    const isError = services.common._.isError
+    const { isError } = services.common._
     const cb = e => isError(e) && services.logger.error(e.message)
     return (...args) => fn(...args)?.catch(cb)
 }

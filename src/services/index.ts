@@ -9,6 +9,7 @@ import resource from '@src/services/resource.js'
 import traverse from '@src/services/traverse.js'
 import response from '@src/services/response.js'
 import env from '@src/services/env.js'
+import example from '@src/services/example.js'
 
 export class Services {
     cmdopts = cmdopts
@@ -22,6 +23,7 @@ export class Services {
     resource = resource
     traverse = traverse
     response = response
+    example = example
 }
 
 export default new Services()

@@ -7,6 +7,8 @@ export class EnvService {
     collectionFilepath = ENV.POSTMAN_COLLECTION_FILEPATH
     globalHeaders = ENV.POSTMAN_GLOBAL_HEADERS
     variables = ENV.POSTMAN_VARIABLES
+
+    debugStackTraces = Boolean(ENV.DEBUG_STACKTRACE)
 }
 
 export default new EnvService()

@@ -33,7 +33,7 @@ export namespace PostmanCli {
 
     export type Containable = psdk.Collection | psdk.ItemGroup<any> | psdk.Item
 
-    export type HttpPrintable = {
+    export type RequestPrintable = {
         headers: Record<string, unknown>
         params: Record<string, unknown>
         query: Record<string, unknown>
@@ -42,6 +42,8 @@ export namespace PostmanCli {
             method: string
         }
         body: unknown
+        $parsedBody?: unknown
+        $parseHint?: ResponseParseHint
         'global:headers'?: Record<string, string>
         'global:variables'?: Record<string, string | number>
     }
@@ -56,6 +58,11 @@ export namespace PostmanCli {
         status: string
         $parsedBody?: unknown
         $parseHint?: ResponseParseHint
+    }
+
+    export type ExamplePrintable = {
+        request?: RequestPrintable
+        response: ResponsePrintable
     }
 
     export type ResponseParseHint =

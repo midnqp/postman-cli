@@ -62,11 +62,10 @@ program
 try {
     program.parse()
 } catch (e) {
-    services.common._.isError(e) && services.logger.error(e.message)
+    services.logger.error(e as any)
 }
 
 function catchE(fn) {
-    const { isError } = services.common._
-    const cb = e => isError(e) && services.logger.error(e.message)
+    const cb = e => services.logger.error(e)
     return (...args) => fn(...args)?.catch(cb)
 }

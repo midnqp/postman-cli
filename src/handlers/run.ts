@@ -85,14 +85,14 @@ export default async function (
         fails.forEach(fail => {
             const resource = <PostmanCli.Resource | undefined>fail.source
             if (!resource) return
-            services.logger.error(fail.error.message)
+            services.logger.error(fail.error)
 
             if (services.resource.isResource(resource))
                 services.resource.print(resource)
             else services.logger.warn('resource could not be printed')
         })
     } catch (err: any) {
-        services.logger.error(err.message)
+        services.logger.error(err)
     }
 
     if (restoreOrigReq.changed) {

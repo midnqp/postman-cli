@@ -11,5 +11,6 @@ export default async function (
     const co = await services.cmdopts.getOptCollection(cmd)
 
     const resource = services.resource.getFromNested(co, args)
-    services.resource.print(resource)
+    if (services.response.isResponse(resource)) services.example.print(resource)
+    else services.resource.print(resource)
 }

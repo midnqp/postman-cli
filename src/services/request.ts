@@ -57,19 +57,41 @@ export class RequestService {
         return color(method.toLowerCase())
     }
 
+    getRawBody() {
+        // for binary file return <binary>
+        // for wav file return <audio>
+        // for image file return <image>
+        //
+        // for formdata return as json
+        // TODO
+        throw Error('not implemented')
+    }
+
     toPrintable(
         r: psdk.Request,
         opts: ToPrintableOpts = {}
-    ): PostmanCli.HttpPrintable {
-        const result: PostmanCli.HttpPrintable = {
+    ): PostmanCli.RequestPrintable {
+        let $parsedBody: Record<string, any>
+        let $parseHint: PostmanCli.ResponseParseHint = 'none'
+        try {
+            $parsedBody = JSON.parse(r.body?.raw || '{}')
+            $parseHint = 'json'
+        } catch (e) {
+            const str = 'parsing only json request/response body is supported'
+            throw Error(str)
+        }
+
+        const result: PostmanCli.RequestPrintable = {
             params: r.url.variables.toObject(),
             query: r.url.query.toObject(),
-            body: JSON.parse(r.body?.raw || '{}'),
+            body: r.body?.raw,
+            $parsedBody,
             url: {
                 path: r.url.getPath({ unresolved: true }),
                 method: r.method.toLowerCase(),
             },
             headers: r.headers.toObject(),
+            $parseHint,
         }
         if (opts.includeGlobalHeaders && opts.headers) {
             const headers = opts.headers
@@ -89,12 +111,17 @@ export class RequestService {
     }
 
     getPrintString(
-        printable: PostmanCli.HttpPrintable,
+        r: PostmanCli.RequestPrintable,
         opts: GetPrintStringOpts = {}
     ): string {
-        const icon = this.getMethodIcon(printable.url.method)
-        const path = printable.url.path
-        const obj = services.common.getFormattedObject(printable, ['url'])
+        const rr = Object.assign({}, r)
+        const avail = ['json', 'text'].includes(rr.$parseHint || '')
+        if (avail) rr.body = rr.$parsedBody
+
+        const icon = this.getMethodIcon(rr.url.method)
+        const path = rr.url.path
+        const ignore = ['url', '$parseHint', '$parsedBody']
+        const obj = services.common.getFormattedObject(rr, ignore)
 
         let result = '\n' + icon + ' ' + path
         result += '\n' + obj

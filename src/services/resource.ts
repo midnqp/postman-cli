@@ -16,17 +16,12 @@ export class ResourceService {
 
     setParent(item: PostmanCli.Resource, newparent: PostmanCli.Containable) {
         const isCol = services.collection.isCollection
-        const isFol = services.folder.isFolder
-        const isReq = services.item.isItem
-        const isRes = services.response.isResponse
-
         if (isCol(item)) {
             services.logger.error('cannot move collection')
             return
         }
 
         const itemType = services.resource.getType(item)
-
         const oldparent: any = item.parent()
         if (!oldparent) {
             const err = `parent of ${itemType} '${item.name}' not found`
@@ -34,23 +29,9 @@ export class ResourceService {
             return
         }
 
-        //let refAdd, refRemove
-        //if (isFol(newparent) || isCol(newparent)) refAdd = newparent.items
-        //else refAdd = newparent.responses
         const refAdd = services.resource.getChildren(newparent)
         const refRemove = services.resource.getChildren(oldparent)
-
-        //if (
-        //services.folder.isFolder(oldparent) ||
-        //services.collection.isCollection(oldparent)
-        //)
-        //refRemove = oldparent.items
-        //else if (services.item.isItem(oldparent))
-        //refRemove = oldparent.responses
-
         const isSameParent = oldparent.id == newparent.id
-        //const isSameName = oldparent.name == newparent.name
-        //if (!isSameName) item.name = newparent.name
         if (!isSameParent) {
             refAdd.add(item)
             refRemove.remove(item.id, null)

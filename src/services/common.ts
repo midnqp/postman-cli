@@ -4,8 +4,6 @@ import lodash from 'lodash'
 import newman, { NewmanRunOptions, NewmanRunSummary } from 'newman'
 import services from '@src/services/index.js'
 
-import { PostmanCli } from '@src/types.js'
-
 export class CommonService {
     _ = lodash
 
@@ -46,6 +44,15 @@ export class CommonService {
         const matcher = new RegExp(`${keyMatcher}\\s*:\\s*${valMatcher}`, 'g')
         const parser = (_, key, value) => `"${key}":${value}`
         return input.replace(matcher, parser)
+    }
+
+    isJson(input: string) {
+        try {
+            JSON.parse(input)
+            return true
+        } catch (e) {
+            return false
+        }
     }
 
     /**

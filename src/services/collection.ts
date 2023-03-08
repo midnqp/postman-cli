@@ -10,26 +10,21 @@ export class CollectionService {
         return psdk.Collection.isCollection(value)
     }
 
-    async save(
-        cmd: Command,
-        collection: psdk.Collection
-    ): Promise<Error | undefined> {
+    async save(cmd: Command, collection: psdk.Collection) {
         if (!cmd.parent) throw Error('cmd parent is null')
 
-        //const cmdOpt = cmd.parent.opts().collection
-        //const envFilepath = services.env.collectionFilepath
-        //const envUrl = services.env.collectionUrl
-        //const exportPath = cmdOpt || envFilepath
-        //const hintable = cmdOpt || envFilepath || envUrl
         const apikey = services.env.apiKey
         const hint = services.cmdopts.cachedCollectionHint
         const hintvalue = services.cmdopts.cachedCollectionHintValue
 
         switch (hint) {
             case 'none': {
-                const err =
-                    'collection hint not found, ' + 'fetch collection first'
-                return Error(err)
+                const err = [
+                    'collection hint not found, ',
+                    'fetch collection first',
+                ].join('')
+                throw Error(err)
+
                 break
             }
 
@@ -40,7 +35,7 @@ export class CollectionService {
                 break
             }
             case 'url-readonly': {
-                return Error('readonly collections cannot be saved')
+                throw Error('readonly collections cannot be saved')
                 break
             }
             case 'url': {
@@ -49,7 +44,7 @@ export class CollectionService {
                 const keyErr =
                     'postman api key required, ' +
                     'when collection is being saved'
-                if (!apikey) return Error(keyErr)
+                if (!apikey) throw Error(keyErr)
 
                 try {
                     const opts = { headers: { 'X-API-Key': apikey } }
@@ -63,7 +58,7 @@ export class CollectionService {
                         'collection failed: ',
                         err.message,
                     ].join('')
-                    return Error(e)
+                    throw Error(e)
                 }
                 break
             }
@@ -74,7 +69,7 @@ export class CollectionService {
                 const errApikey =
                     'postman api key required, ' +
                     'when collection is being saved'
-                if (!apikey) return Error(errApikey)
+                if (!apikey) throw Error(errApikey)
 
                 const opts = { headers: { 'X-API-Key': apikey } }
                 const url = 'https://api.getpostman.com/collections/' + id
@@ -86,7 +81,7 @@ export class CollectionService {
                         'collection failed: ',
                         err.message,
                     ].join('')
-                    return Error(e)
+                    throw Error(e)
                 }
 
                 break

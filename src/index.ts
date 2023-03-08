@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 import Handlers from '@src/handlers/index.js'
+import services from './services'
 
 const program = new Command()
 program
@@ -16,46 +17,56 @@ program
 program
     .command('show <resources...>')
     .description('show details of a resource')
-    .action(Handlers.show)
+    .action(catchE(Handlers.show))
 
 program
     .command('list [resources...]')
     .description('list resources recursively')
     .option('-d, --depth [number]', 'max recursive depth', 'Infinity')
-    .action(Handlers.list)
+    .action(catchE(Handlers.list))
 
 program
     .command('run <resources...>')
     .description('runs a request')
-    .action(Handlers.run)
+    .action(catchE(Handlers.run))
 
 program
     .command('move')
     .description('move a resource under another parent')
     .requiredOption('--from <resources...>')
     .requiredOption('--to <resources...>')
-    .action(Handlers.move)
+    .action(catchE(Handlers.move))
 
 program
     .command('rename <resources...>')
     .description('rename a resource')
     .requiredOption('--name <string>', 'new name of resource')
-    .action(Handlers.rename)
+    .action(catchE(Handlers.rename))
 
 program
     .command('delete <resources...>')
     .description('remove a resource')
-    .action(Handlers.delete)
+    .action(catchE(Handlers.delete))
 
 program
     .command('reorder <resources...>')
     .description('reorder a resource under the same parent')
     .requiredOption('--index <number>', 'new 1-based index')
-    .action(Handlers.reorder)
+    .action(catchE(Handlers.reorder))
 
 program
     .command('update <resources...>')
     .description('update a resource details')
-    .action(Handlers.update)
+    .action(catchE(Handlers.update))
 
-program.parse()
+try {
+    program.parse()
+} catch (e) {
+    services.common._.isError(e) && services.logger.error(e.message)
+}
+
+function catchE(fn) {
+    const isError = services.common._.isError
+    const cb = e => isError(e) && services.logger.error(e.message)
+    return (...args) => fn(...args)?.catch(cb)
+}

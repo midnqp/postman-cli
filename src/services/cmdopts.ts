@@ -2,7 +2,7 @@ import fs from 'fs-extra'
 import services from '@src/services/index.js'
 import { Command } from 'commander'
 import * as uuid from 'uuid'
-import psdk from 'postman-collection'
+import psdk, { Collection } from 'postman-collection'
 import axios from 'axios'
 import path from 'node:path'
 
@@ -83,8 +83,8 @@ export class CmdOptsService {
         return 'none'
     }
 
-    async #fetchCollection(cmd: Command): Promise<Error | Record<string, any>> {
-        if (!cmd.parent) return Error('cmd.parent is null')
+    async #fetchCollection(cmd: Command): Promise<Record<string, any>> {
+        if (!cmd.parent) throw Error('cmd.parent is null')
 
         // precedence order
         const hintable =
@@ -98,7 +98,7 @@ export class CmdOptsService {
 
         switch (hint) {
             case 'none':
-                return Error('no collection specified')
+                throw Error('no collection specified')
                 break
             case 'file': {
                 const file = hintable
@@ -113,7 +113,7 @@ export class CmdOptsService {
                 const errApikey =
                     'postman api key required, ' +
                     'when collection id is specified'
-                if (!apikey) return Error(errApikey)
+                if (!apikey) throw Error(errApikey)
 
                 const opts = { headers: { 'X-API-Key': apikey } }
                 const url = 'https://api.getpostman.com/collections/' + id
@@ -121,7 +121,7 @@ export class CmdOptsService {
                     const { data } = await axios.get(url, opts)
                     collection = data.collection
                 } catch (err: any) {
-                    return Error('http request to fetch collection failed')
+                    throw Error('http request to fetch collection failed')
                 }
                 break
             }
@@ -132,14 +132,14 @@ export class CmdOptsService {
                 const errApikey =
                     'postman api key required, ' +
                     'when collection url is specified'
-                if (!apikey) return Error(errApikey)
+                if (!apikey) throw Error(errApikey)
 
                 const opts = { headers: { 'X-API-Key': apikey } }
                 try {
                     const { data } = await axios.get(url, opts)
                     collection = data.collection
                 } catch (err: any) {
-                    return Error('http request to fetch collection failed')
+                    throw Error('http request to fetch collection failed')
                 }
                 break
             }
@@ -151,7 +151,7 @@ export class CmdOptsService {
                     collection = data.collection
                 } catch (err: any) {
                     const e = 'http request to fetch readonly collection failed'
-                    return Error(e)
+                    throw Error(e)
                 }
                 break
             }
@@ -167,18 +167,11 @@ export class CmdOptsService {
     cachedCollectionHint: CollectionHint = 'none'
     #cachedCollectionJson: undefined | Record<string, any> = undefined
 
-    async getOptCollection(
-        cmd: Command,
-        forceFetch = false
-    ): Promise<Error | psdk.Collection> {
+    async getOptCollection(cmd: Command, forceFetch = false) {
         let collection: Record<string, any> = {}
-
-        if (!this.#cachedCollectionJson || forceFetch) {
-            const c = await this.#fetchCollection(cmd)
-            if (services.common._.isError(c)) return c
-
-            collection = c
-        } else collection = this.#cachedCollectionJson
+        const cache = this.#cachedCollectionJson
+        if (!cache || forceFetch) collection = await this.#fetchCollection(cmd)
+        else collection = cache
 
         const result = new psdk.Collection(collection)
         return result

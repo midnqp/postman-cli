@@ -1,4 +1,3 @@
-import psdk from 'postman-collection'
 import services from '@src/services/index.js'
 import * as commander from 'commander'
 import { PostmanCli } from '@src/types.js'
@@ -8,18 +7,9 @@ export default async function (
     ..._cmd: [PostmanCli.Cmd.Opts.Reorder, commander.Command]
 ) {
     const [optional, cmd] = _cmd
-
     const co = await services.cmdopts.getOptCollection(cmd)
-    if (services.common._.isError(co)) {
-        services.logger.error(co.message)
-        return
-    }
 
     const resource = services.resource.getFromNested(co, args)
-    if (services.common._.isError(resource)) {
-        services.logger.error(resource.message)
-        return
-    }
     let optsIdx = parseInt(optional.index)
 
     const parent = resource.parent() as PostmanCli.Containable
@@ -38,13 +28,7 @@ export default async function (
         const resIdx = children.indexOf(resource.id)
         // @ts-ignore
         services.common.arrayMove(children.members, resIdx, optsIdx)
-
         services.resource.printOutline([parent])
-
-        const saved = await services.collection.save(cmd, co)
-        if (services.common._.isError(saved)) {
-            services.logger.error(saved.message)
-            return
-        }
+        await services.collection.save(cmd, co)
     } else services.resource.printOutline([parent])
 }

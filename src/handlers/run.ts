@@ -12,18 +12,9 @@ export default async function (
     const globalHeaders = services.cmdopts.getOptHeaders(cmd)
 
     const co = await services.cmdopts.getOptCollection(cmd)
-    if (services.common._.isError(co)) {
-        services.logger.error(co.message)
-        return
-    }
-
     co.syncVariablesFrom(globalVariables)
-
     const resource = services.resource.getFromNested(co, args)
-    if (services.common._.isError(resource)) {
-        services.logger.error(resource.message)
-        return
-    }
+
     let runnable: any = resource
     const restoreOrigReq: {
         changed: boolean

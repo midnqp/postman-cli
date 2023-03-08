@@ -82,7 +82,7 @@ export class ResourceService {
      * @param args variadic names/id/index of nested resources
      *
      */
-    getFromNested(parent, args: string[]): PostmanCli.Resource | Error {
+    getFromNested(parent, args: string[]): PostmanCli.Resource {
         if (args[0] == parent.name) {
             const children = services.resource.getChildrenRaw(parent)
             const found = children.find(child => {
@@ -100,11 +100,9 @@ export class ResourceService {
         let currDepth = 0
         const maxDepth = args.length
         const getNext = (name: string, parentIter) => {
-            if (!parentIter.find) return // commentable?? TODO
-            return parentIter.find(
-                child => child.name.toLowerCase() === name,
-                {}
-            )
+            if (!parentIter.find) return
+            const fn = child => child.name.toLowerCase() === name
+            return parentIter.find(fn, {})
         }
         const nextName = () => args[currDepth]
         // additionally increments currDepth
@@ -118,7 +116,7 @@ export class ResourceService {
             if (!tmp) {
                 const resname = founditems.at(-1)?.name || parent.name
                 const msg = `"${name}" not found inside "${resname}".`
-                return Error(msg)
+                throw Error(msg)
             }
 
             if (services.folder.isFolder(tmp)) {
@@ -132,7 +130,7 @@ export class ResourceService {
             } else if (services.response.isResponse(tmp)) {
                 founditems.push(tmp)
                 return tmp
-            } else return Error(`Found unknown instance "${name}".`)
+            } else throw Error(`Found unknown instance "${name}".`)
         }
         return nextiter
     }

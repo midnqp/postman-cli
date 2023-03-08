@@ -109,15 +109,6 @@ export class CommonService {
         arr.splice(fromIndex, 1)
         arr.splice(toIndex, 0, element)
     }
-
-    centralCatch(err: unknown) {
-        if (this._.isError(err)) {
-            services.logger.error(err.message)
-        } else if (this._.isString(err)) {
-            services.logger.error(err)
-        }
-        //if (services.common.isWarning(err)) {} TODO may require later ?
-    }
 }
 
 export default new CommonService()

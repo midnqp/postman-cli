@@ -85,12 +85,12 @@ export class RequestService {
             params: r.url.variables.toObject(),
             query: r.url.query.toObject(),
             body: r.body?.raw,
-            $parsedBody,
             url: {
                 path: r.url.getPath({ unresolved: true }),
                 method: r.method.toLowerCase(),
             },
             headers: r.headers.toObject(),
+            $parsedBody,
             $parseHint,
         }
         if (opts.includeGlobalHeaders && opts.headers) {

@@ -1,4 +1,5 @@
 import services from '@src/services/index.js'
+import psdk from 'postman-collection'
 import { PostmanCli } from '@src/types'
 import { Command } from 'commander'
 import editor from '@inquirer/editor'
@@ -14,13 +15,20 @@ export default async function (
     const resource = services.resource.getFromNested(co, args)
 
     if (services.response.isResponse(resource)) {
-        const p = services.response.toPrintable(resource)
+        const p = services.example.toPrintable(resource)
         const str = util.inspect(p, {
             colors: false,
             maxArrayLength: null,
             maxStringLength: null,
+            depth: 50,
         })
-        const prompt = await editor({ default: str, message: '' })
-        console.log(prompt)
+        const prompt: any = await editor({ default: str, message: '' })
+
+        new psdk.Response({
+            code: prompt.response.code,
+            responseTime: prompt.response.time,
+            body: prompt.response.body,
+            header: [{}],
+        })
     }
 }

@@ -5,8 +5,6 @@ import { Command } from 'commander'
 import util from 'node:util'
 import _ from 'lodash'
 import Enquirer from 'enquirer'
-import openeditor from 'open-editor'
-import editor from '@inquirer/editor'
 import open from 'open'
 import tmp from 'tmp'
 import fs from 'node:fs'
@@ -87,7 +85,7 @@ export default async function (
         }
         const response = new psdk.Response({
             code: parsed.response.code,
-            responseTime: parsed.response.time,
+            responseTime: parsed.response.time || 0,
             body: JSON.stringify(parsed.response.body),
             header: services.common.jsonToHeaders(parsed.response.headers),
 

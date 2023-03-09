@@ -121,12 +121,12 @@ export class ResponseService {
             },
             headers,
             body: rawBody,
-            $parsedBody,
-            $parseHint,
             size: r.size() as any,
             time: r.responseTime,
             code: r.code,
             status: r.status,
+            $parsedBody,
+            $parseHint,
         }
     }
 

@@ -2,12 +2,21 @@ import { PostmanCli } from '@src/types.js'
 import psdk from 'postman-collection'
 import services from '@src/services/index.js'
 
+type ToPrintableOpts = {
+    addParsedBody?: true
+}
+
 /**
  * Mostly an abstraction over psdk.Response
  * for cmd-show.
  */
 export class ExampleService {
-    toPrintable(r: psdk.Response): PostmanCli.ExamplePrintable {
+    declare ToPrintableOpts: ToPrintableOpts
+
+    toPrintable(
+        r: psdk.Response,
+        opts: ToPrintableOpts = {}
+    ): PostmanCli.ExamplePrintable {
         let urlMethod = ''
         let urlPath = ''
         const resultResponse = services.response.toPrintable(r)
@@ -28,6 +37,15 @@ export class ExampleService {
             urlPath = item.request.url.getPath()
         }
 
+        if (opts.addParsedBody && resultRequest?.$parsedBody) {
+            resultRequest.body = resultRequest.$parsedBody
+            delete resultRequest.$parsedBody
+        }
+        if (opts.addParsedBody && resultResponse?.$parsedBody) {
+            resultResponse.body = resultResponse.$parsedBody
+            delete resultResponse.$parsedBody
+        }
+
         return { response: resultResponse, request: resultRequest }
     }
 
@@ -35,7 +53,7 @@ export class ExampleService {
         let req = ''
         if (r.request) req = services.request.getPrintString(r.request)
         const res = services.response.getPrintString(r.response)
-        return req + '\n\n\n\n' + res
+        return req + '\n\n' + res
     }
 
     print(r: psdk.Response) {

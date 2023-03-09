@@ -182,10 +182,7 @@ export class CmdOptsService {
         const headersString =
             cmd.parent.opts().headers || services.env.globalHeaders || '{}'
         const headers = JSON.parse(headersString)
-        const result = Object.entries(headers).map(([k, v]) => {
-            const value: string | any = v
-            return new psdk.Header({ key: k, value, system: true })
-        })
+        const result = services.common.jsonToHeaders(headers)
         return result
     }
 }

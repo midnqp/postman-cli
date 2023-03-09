@@ -1,8 +1,10 @@
 import fs from 'fs-extra'
+import psdk from 'postman-collection'
 import util, { inspect } from 'node:util'
 import lodash from 'lodash'
 import newman, { NewmanRunOptions, NewmanRunSummary } from 'newman'
 import services from '@src/services/index.js'
+import pretty from 'js-object-pretty-print'
 
 export class CommonService {
     _ = lodash
@@ -39,11 +41,16 @@ export class CommonService {
      * into JSON-parsable string.
      */
     toJsonString(input: string) {
-        const keyMatcher = '([^",{}\\s]+?)'
-        const valMatcher = '(.,*)'
-        const matcher = new RegExp(`${keyMatcher}\\s*:\\s*${valMatcher}`, 'g')
-        const parser = (_, key, value) => `"${key}":${value}`
-        return input.replace(matcher, parser)
+        //const keyMatcher = '([^",{}\\s]+?)'
+        //const valMatcher = '(.,*)'
+        //const matcher = new RegExp(`${keyMatcher}\\s*:\\s*${valMatcher}`, 'g')
+        //const parser = (_, key, value) => `"${key}":${value}`
+        //return input.replace(matcher, parser)
+
+        //return input.replace(/([\$\w]+)\s*:/g, function (_, $1) {return '"' + $1 + '":'})
+        //.replace(/'([^']+)'/g, function (_, $1) {return '"' + $1 + '"'})
+
+        return pretty.pretty(input, 4, 'JSON')
     }
 
     isJson(input: string) {
@@ -53,6 +60,14 @@ export class CommonService {
         } catch (e) {
             return false
         }
+    }
+
+    jsonToHeaders(jsonHeaders: Record<string, any>) {
+        const result = Object.entries(jsonHeaders).map(([k, v]) => {
+            const value: string | any = v
+            return new psdk.Header({ key: k, value })
+        })
+        return result
     }
 
     /**

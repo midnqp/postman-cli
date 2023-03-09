@@ -21,6 +21,7 @@ export namespace PostmanCli.Cmd.Opts {
     export type Rename = { name: string }
     export type Delete = { index: number }
     export type Reorder = { index: string }
+    export type Update = {}
 }
 
 export namespace PostmanCli {
@@ -32,7 +33,7 @@ export namespace PostmanCli {
 
     export type Containable = psdk.Collection | psdk.ItemGroup<any> | psdk.Item
 
-    export type HttpPrintable = {
+    export type RequestPrintable = {
         headers: Record<string, unknown>
         params: Record<string, unknown>
         query: Record<string, unknown>
@@ -41,6 +42,8 @@ export namespace PostmanCli {
             method: string
         }
         body: unknown
+        $parsedBody?: unknown
+        $parseHint?: ResponseParseHint
         'global:headers'?: Record<string, string>
         'global:variables'?: Record<string, string | number>
     }
@@ -54,6 +57,23 @@ export namespace PostmanCli {
         code: number
         status: string
         $parsedBody?: unknown
-        $parseHint?: 'text' | 'json' | 'formdata' | 'wav' | 'png'
+        $parseHint?: ResponseParseHint
     }
+
+    export type ExamplePrintable = {
+        request?: RequestPrintable
+        response: ResponsePrintable
+    }
+
+    export type ResponseParseHint =
+        | 'text'
+        | 'json'
+        | 'formdata'
+        | 'wav'
+        | 'png'
+        | 'raw'
+        | 'graphql'
+        | 'none'
+
+    export type ResponseLang = 'text' | 'json'
 }

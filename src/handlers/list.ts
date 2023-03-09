@@ -10,21 +10,14 @@ export default async function (
     const [optional, cmd] = _cmd
     args = args.map(e => e.toLowerCase())
     const co = await services.cmdopts.getOptCollection(cmd)
-    if (services.common._.isError(co)) {
-        services.logger.error(co.message)
-        return
-    }
+    const optDepth = optional.depth
 
     let parent: [psdk.Collection] | [PostmanCli.Resource] = [co]
 
     if (args.length) {
-        const res = services.common.getNestedResource(co, args)
-        if (services.common._.isError(res)) {
-            services.logger.error(res.message)
-            return
-        }
+        const res = services.resource.getFromNested(co, args)
         parent = [res]
     }
 
-    services.resource.printOutline(parent, { d: optional.depth })
+    services.resource.printOutline(parent, { d: optDepth })
 }

@@ -33,46 +33,85 @@ export class ResponseService {
         return color(code + ' ' + status)
     }
 
+    /**
+     * recursively prepared nested Enquirer choices, if
+     * json has nested objects.
+     */
+    toFormChoices(json, { result, parentName }: any): void {
+        if (!parentName) parentName = ''
+
+        if (services.common._.isPlainObject(json)) {
+            Object.entries(json).forEach(([k, v]) => {
+                if (services.common._.isPlainObject(v)) {
+                    const nestedItem = {
+                        name: k,
+                        message: k,
+                        type: 'form',
+                        choices: [],
+                    }
+                    result.push(nestedItem)
+                    return this.toFormChoices(v, {
+                        parentName: k,
+                        result: nestedItem.choices,
+                    })
+                }
+                const sep = '⁣'
+                const item = {
+                    name: parentName ? parentName + sep + k : k,
+                    message: k,
+                    initial: v,
+                }
+                result.push(item)
+            })
+        }
+    }
+
+    /**
+     * Transforms response body to
+     */
+    toEnquirerForm(r: psdk.Response): Error | any[] {
+        const result: any[] = []
+
+        const body = r?.originalRequest?.body
+        if (!body || !r.originalRequest) return result
+
+        const json = services.request.toJsonBody(r.originalRequest)
+        if (services.common._.isError(json)) return json
+
+        this.toFormChoices(json, { result })
+        return result
+    }
+
     toPrintable(r: psdk.Response): PostmanCli.ResponsePrintable {
         const headers = r.headers.toObject()
-        let $parseHint: PostmanCli.ResponsePrintable['$parseHint']
+        let $parseHint: PostmanCli.ResponseParseHint = 'none'
         let $parsedBody: any
         let rawBody: any
         let urlMethod = ''
         let urlPath = ''
 
-        //if (!r.originalRequest) throw Error('request not found in response')
+        //if (headers['content-type'] && r.stream) {
+        // before cmd-run, and after cmd-run
+        if (r.body || r.stream) {
+            try {
+                $parsedBody = JSON.parse(r.body || r.stream?.toString() || '{}')
+                $parseHint = 'json'
+            } catch (e) {
+                const s = 'parsing only json request/response body is supported'
+                throw Error(s)
+            }
+        }
 
-        if (r?.originalRequest?.body) {
+        if (r.originalRequest) {
+            urlMethod = r.originalRequest.method
+            urlPath = r.originalRequest.url.getPath()
+        }
+
+        const parent = r.parent() as psdk.Item // this is undefined while in cmd-run!
+        if ((!urlMethod || !urlPath) && parent) {
             // cmd-show
-            const body = r.originalRequest?.body
-            const mode = body.mode
-            type ResponseLang = 'json' | 'text' | undefined
-            // @ts-ignore
-            const lang: ResponseLang = body.options[mode]?.language
-            const raw = body[mode]
-            rawBody = raw
-
-            if (lang == 'json' && raw) {
-                $parsedBody = r.json()
-                $parseHint = 'json'
-            } else if (lang == 'text' && raw) {
-                $parsedBody = r.text()
-                $parseHint = 'text'
-            }
-
-            urlMethod = r?.originalRequest?.method || ''
-            urlPath = r?.originalRequest?.url.getPath() || ''
-        } else if (headers['content-type'] && r.stream) {
-            // cmd-run
-            const { type } = contentType.parse(headers['content-type'])
-            if (type.includes('json')) {
-                $parseHint = 'json'
-                $parsedBody = JSON.parse(r.stream.toString())
-            } else if (type.includes('text')) {
-                $parseHint = 'text'
-                $parsedBody = r.stream.toString()
-            }
+            urlMethod = parent.request.method
+            urlPath = parent.request.url.getPath()
         }
 
         return {
@@ -82,28 +121,28 @@ export class ResponseService {
             },
             headers,
             body: rawBody,
-            $parsedBody,
-            $parseHint,
             size: r.size() as any,
             time: r.responseTime,
             code: r.code,
             status: r.status,
+            $parsedBody,
+            $parseHint,
         }
     }
 
     getPrintString(r: PostmanCli.ResponsePrintable): string {
-        const rr = r
+        const rr = Object.assign({}, r)
 
-        if (rr.$parseHint && ['json', 'text'].includes(rr.$parseHint)) {
-            rr.body = rr.$parsedBody
-        }
+        const avail = ['json', 'text'].includes(rr.$parseHint || '')
+        if (avail) rr.body = rr.$parsedBody
+
         const opts = ['$parseHint', '$parsedBody', 'code', 'status', 'size']
-        if (!r.url.method || !r.url.path) opts.push('url') // in cmd-run
+        if (!rr.url.method || !rr.url.path) opts.push('url') // in cmd-run
 
         let result = this.getCodeIcon(rr.code, rr.status)
         result += '    ' + prettyBytes(rr.size.total)
-        if (r.time) {
-            result += '    ' + r.time + ' ms'
+        if (rr.time) {
+            result += '    ' + rr.time + ' ms'
             opts.push('time')
         }
         result += '\n' + services.common.getFormattedObject(rr, opts)

@@ -16,17 +16,12 @@ export class ResourceService {
 
     setParent(item: PostmanCli.Resource, newparent: PostmanCli.Containable) {
         const isCol = services.collection.isCollection
-        const isFol = services.folder.isFolder
-        const isReq = services.item.isItem
-        const isRes = services.response.isResponse
-
         if (isCol(item)) {
             services.logger.error('cannot move collection')
             return
         }
 
         const itemType = services.resource.getType(item)
-
         const oldparent: any = item.parent()
         if (!oldparent) {
             const err = `parent of ${itemType} '${item.name}' not found`
@@ -34,23 +29,9 @@ export class ResourceService {
             return
         }
 
-        //let refAdd, refRemove
-        //if (isFol(newparent) || isCol(newparent)) refAdd = newparent.items
-        //else refAdd = newparent.responses
         const refAdd = services.resource.getChildren(newparent)
         const refRemove = services.resource.getChildren(oldparent)
-
-        //if (
-        //services.folder.isFolder(oldparent) ||
-        //services.collection.isCollection(oldparent)
-        //)
-        //refRemove = oldparent.items
-        //else if (services.item.isItem(oldparent))
-        //refRemove = oldparent.responses
-
         const isSameParent = oldparent.id == newparent.id
-        //const isSameName = oldparent.name == newparent.name
-        //if (!isSameName) item.name = newparent.name
         if (!isSameParent) {
             refAdd.add(item)
             refRemove.remove(item.id, null)
@@ -72,6 +53,67 @@ export class ResourceService {
             services.item.isItem(resource) ||
             services.collection.isCollection(resource)
         )
+    }
+
+    /**
+     * Goes deep recursively and finds a nested
+     * resource. The most efficient to get a resource from args[].
+     *
+     * @param parent A collection.
+     * @param args variadic names/id/index of nested resources
+     *
+     */
+    getFromNested(parent, args: string[]): PostmanCli.Resource {
+        if (args[0] == parent.name) {
+            const children = services.resource.getChildrenRaw(parent)
+            const found = children.find(child => {
+                const c = child.name.toLowerCase()
+                const p = parent.name.toLowerCase()
+                return c == p
+            })
+            // it refers to parent itself, and only item
+            if (!found && args.length == 1) return parent
+            // probably it refers to the parent itself
+            if (!found) args.splice(0, 1)
+        }
+
+        let nextiter = parent.items
+        let currDepth = 0
+        const maxDepth = args.length
+        const getNext = (name: string, parentIter) => {
+            if (!parentIter.find) return
+            const fn = child => child.name.toLowerCase() === name
+            return parentIter.find(fn, {})
+        }
+        const nextName = () => args[currDepth]
+        // additionally increments currDepth
+        const isLast = () => ++currDepth === maxDepth
+        let tmp
+        const founditems: any = []
+
+        while (currDepth < maxDepth) {
+            const name = nextName()
+            tmp = getNext(name, nextiter)
+            if (!tmp) {
+                const resname = founditems.at(-1)?.name || parent.name
+                const msg = `"${name}" not found inside "${resname}".`
+                throw Error(msg)
+            }
+
+            if (services.folder.isFolder(tmp)) {
+                if (isLast()) return tmp
+                founditems.push(tmp)
+                nextiter = tmp.items
+            } else if (services.item.isItem(tmp)) {
+                if (isLast()) return tmp
+                founditems.push(tmp)
+                nextiter = (tmp.responses as any).members
+            } else if (services.response.isResponse(tmp)) {
+                founditems.push(tmp)
+                return tmp
+            } else throw Error(`Found unknown instance "${name}".`)
+        }
+        return nextiter
     }
 
     getChildrenRaw(parent: PostmanCli.Containable) {

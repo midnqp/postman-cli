@@ -12,18 +12,9 @@ export default async function (
     const globalHeaders = services.cmdopts.getOptHeaders(cmd)
 
     const co = await services.cmdopts.getOptCollection(cmd)
-    if (services.common._.isError(co)) {
-        services.logger.error(co.message)
-        return
-    }
-
     co.syncVariablesFrom(globalVariables)
+    const resource = services.resource.getFromNested(co, args)
 
-    const resource = services.common.getNestedResource(co, args)
-    if (services.common._.isError(resource)) {
-        services.logger.error(resource.message)
-        return
-    }
     let runnable: any = resource
     const restoreOrigReq: {
         changed: boolean
@@ -94,14 +85,14 @@ export default async function (
         fails.forEach(fail => {
             const resource = <PostmanCli.Resource | undefined>fail.source
             if (!resource) return
-            services.logger.error(fail.error.message)
+            services.logger.error(fail.error)
 
             if (services.resource.isResource(resource))
                 services.resource.print(resource)
             else services.logger.warn('resource could not be printed')
         })
     } catch (err: any) {
-        services.logger.error(err.message)
+        services.logger.error(err)
     }
 
     if (restoreOrigReq.changed) {

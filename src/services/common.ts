@@ -1,10 +1,10 @@
 import fs from 'fs-extra'
+import psdk from 'postman-collection'
 import util, { inspect } from 'node:util'
 import lodash from 'lodash'
 import newman, { NewmanRunOptions, NewmanRunSummary } from 'newman'
 import services from '@src/services/index.js'
-
-import { PostmanCli } from '@src/types.js'
+import pretty from 'js-object-pretty-print'
 
 export class CommonService {
     _ = lodash
@@ -41,11 +41,33 @@ export class CommonService {
      * into JSON-parsable string.
      */
     toJsonString(input: string) {
-        const keyMatcher = '([^",{}\\s]+?)'
-        const valMatcher = '(.,*)'
-        const matcher = new RegExp(`${keyMatcher}\\s*:\\s*${valMatcher}`, 'g')
-        const parser = (_, key, value) => `"${key}":${value}`
-        return input.replace(matcher, parser)
+        //const keyMatcher = '([^",{}\\s]+?)'
+        //const valMatcher = '(.,*)'
+        //const matcher = new RegExp(`${keyMatcher}\\s*:\\s*${valMatcher}`, 'g')
+        //const parser = (_, key, value) => `"${key}":${value}`
+        //return input.replace(matcher, parser)
+
+        //return input.replace(/([\$\w]+)\s*:/g, function (_, $1) {return '"' + $1 + '":'})
+        //.replace(/'([^']+)'/g, function (_, $1) {return '"' + $1 + '"'})
+
+        return pretty.pretty(input, 4, 'JSON')
+    }
+
+    isJson(input: string) {
+        try {
+            JSON.parse(input)
+            return true
+        } catch (e) {
+            return false
+        }
+    }
+
+    jsonToHeaders(jsonHeaders: Record<string, any>) {
+        const result = Object.entries(jsonHeaders).map(([k, v]) => {
+            const value: string | any = v
+            return new psdk.Header({ key: k, value })
+        })
+        return result
     }
 
     /**
@@ -91,69 +113,6 @@ export class CommonService {
         const d = performance.now()
         cb()
         return performance.now() - d
-    }
-
-    /**
-     * Goes deep recursively and finds a nested
-     * resource. The most efficient to get a resource from args[].
-     *
-     * @param parent A collection.
-     * @param args Nested resources, e.g. folder1 folder2 request1 example2
-     *
-     */
-    getNestedResource(parent, args: string[]): PostmanCli.Resource | Error {
-        if (args[0] == parent.name) {
-            const children = services.resource.getChildrenRaw(parent)
-            const found = children.find(child => {
-                const c = child.name.toLowerCase()
-                const p = parent.name.toLowerCase()
-                return c == p
-            })
-            // it refers to parent itself, and only item
-            if (!found && args.length == 1) return parent
-            // probably it refers to the parent itself
-            if (!found) args.splice(0, 1)
-        }
-
-        let nextiter = parent.items
-        let currDepth = 0
-        const maxDepth = args.length
-        const getNext = (name: string, parentIter) => {
-            if (!parentIter.find) return // commentable?? TODO
-            return parentIter.find(
-                child => child.name.toLowerCase() === name,
-                {}
-            )
-        }
-        const nextName = () => args[currDepth]
-        // additionally increments currDepth
-        const isLast = () => ++currDepth === maxDepth
-        let tmp
-        const founditems: any = []
-
-        while (currDepth < maxDepth) {
-            const name = nextName()
-            tmp = getNext(name, nextiter)
-            if (!tmp) {
-                const resname = founditems.at(-1)?.name || parent.name
-                const msg = `"${name}" not found inside "${resname}".`
-                return Error(msg)
-            }
-
-            if (services.folder.isFolder(tmp)) {
-                if (isLast()) return tmp
-                founditems.push(tmp)
-                nextiter = tmp.items
-            } else if (services.item.isItem(tmp)) {
-                if (isLast()) return tmp
-                founditems.push(tmp)
-                nextiter = (tmp.responses as any).members
-            } else if (services.response.isResponse(tmp)) {
-                founditems.push(tmp)
-                return tmp
-            } else return Error(`Found unknown instance "${name}".`)
-        }
-        return nextiter
     }
 
     sleep(ms: number) {

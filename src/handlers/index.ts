@@ -5,6 +5,7 @@ import cmdReorder from '@src/handlers/reorder.js'
 import cmdMove from '@src/handlers/move.js'
 import cmdDelete from '@src/handlers/delete.js'
 import cmdRun from '@src/handlers/run.js'
+import cmdUpdate from '@src/handlers/update.js'
 
 export class Handlers {
     show = cmdShow
@@ -14,6 +15,7 @@ export class Handlers {
     reorder = cmdReorder
     move = cmdMove
     delete = cmdDelete
+    update = cmdUpdate
 }
 
 export default new Handlers()
